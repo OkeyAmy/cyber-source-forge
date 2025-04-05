@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import CyberBackground from '@/components/CyberBackground';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import SettingsCenter from '@/components/SettingsCenter';
 
 const Hub = () => {
   const [message, setMessage] = useState('');
@@ -13,6 +14,7 @@ const Hub = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSourcePanelOpen, setIsSourcePanelOpen] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeSources, setActiveSources] = useState<{ url: string; title: string; verified: boolean }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -140,6 +142,10 @@ const Hub = () => {
       navigate('/');
     }, 1500);
   };
+  
+  const openSettings = () => {
+    setIsSettingsOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-cyber-dark text-white relative">
@@ -176,7 +182,7 @@ const Hub = () => {
                 <span className="text-sm">Researcher</span>
               </div>
               <div className="flex">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast({ title: "Settings", description: "User settings coming soon" })}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openSettings}>
                   <Settings className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
@@ -364,6 +370,9 @@ const Hub = () => {
           {isSourcePanelOpen ? <ChevronRight className="text-cyber-green" /> : <ChevronLeft className="text-cyber-green" />}
         </button>
       </div>
+      
+      {/* Settings Center */}
+      <SettingsCenter open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );
 };
