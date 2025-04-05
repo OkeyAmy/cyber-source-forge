@@ -2,10 +2,12 @@
 import React, { useState } from 'react';
 import { Search, Mic, Bot, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useNavigate } from 'react-router-dom';
 
 const CyberSearch: React.FC = () => {
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const navigate = useNavigate();
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -13,10 +15,15 @@ const CyberSearch: React.FC = () => {
     
     setIsSearching(true);
     
-    // Simulate search process
+    // Store the query in session storage so we can use it after auth
+    sessionStorage.setItem('pendingQuery', query);
+    
+    // Simulate brief loading before redirect
     setTimeout(() => {
       setIsSearching(false);
-    }, 3000);
+      // Redirect to auth page
+      navigate('/auth');
+    }, 1000);
   };
   
   return (
