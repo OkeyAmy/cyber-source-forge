@@ -106,7 +106,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}/hub`
+          redirectTo: window.location.origin + '/hub'
         }
       });
       
