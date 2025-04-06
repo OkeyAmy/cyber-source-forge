@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Book, History, ChevronRight, ChevronLeft, Search, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,12 +34,10 @@ const Hub = () => {
     loadChat
   } = useChatHistory();
   
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
   
-  // Load current chat messages if available
   useEffect(() => {
     if (currentChat) {
       setChatHistory(currentChat.messages || []);
@@ -49,7 +46,6 @@ const Hub = () => {
     }
   }, [currentChat]);
   
-  // Check if there's a query in session storage and process it
   useEffect(() => {
     const initialQuery = sessionStorage.getItem('pendingQuery');
     if (initialQuery) {
@@ -61,14 +57,12 @@ const Hub = () => {
   const processInitialQuery = async (query: string) => {
     setMessage('');
     
-    // Create a new chat if none exists
     let currentChatSession = currentChat;
     if (!currentChatSession) {
       currentChatSession = await createNewChat();
       if (!currentChatSession) return;
     }
     
-    // Add user message
     const updatedMessages = [
       ...(currentChatSession.messages || []),
       { role: 'user', content: query } as ChatMessage
@@ -79,7 +73,6 @@ const Hub = () => {
     
     setIsLoading(true);
     
-    // Simulate AI response with sources
     setTimeout(() => {
       const newSources = [
         { 
@@ -126,7 +119,6 @@ const Hub = () => {
     
     if (!message.trim()) return;
     
-    // Create a new chat if none exists
     let currentChatSession = currentChat;
     if (!currentChatSession) {
       currentChatSession = await createNewChat();
@@ -136,7 +128,6 @@ const Hub = () => {
     const userMessage = message;
     setMessage('');
     
-    // Add user message
     const updatedMessages = [
       ...chatHistory,
       { role: 'user', content: userMessage } as ChatMessage
@@ -147,7 +138,6 @@ const Hub = () => {
     
     setIsLoading(true);
     
-    // Simulate AI response
     setTimeout(() => {
       const newSources = [
         { 
@@ -228,11 +218,17 @@ const Hub = () => {
       <CyberBackground />
       
       <div className="flex flex-grow relative z-10">
-        {/* Chat History Sidebar with Collapsible */}
         <Collapsible 
           open={!isHistorySidebarCollapsed} 
           onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
           className="fixed md:relative inset-y-0 left-0 transform md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-cyber-dark border-r border-white/10 flex flex-col z-30"
+          style={{
+            transform: isHistorySidebarCollapsed ? 'translateX(-100%)' : 'translateX(0)',
+            width: isHistorySidebarCollapsed ? '0' : '16rem',
+            opacity: isHistorySidebarCollapsed ? 0 : 1,
+            visibility: isHistorySidebarCollapsed ? 'hidden' : 'visible',
+            overflow: 'hidden'
+          }}
         >
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center">
@@ -246,7 +242,12 @@ const Hub = () => {
             </CollapsibleTrigger>
           </div>
           
-          <CollapsibleContent className="flex-grow flex flex-col">
+          <CollapsibleContent forceMount className="flex-grow flex flex-col" 
+            style={{ 
+              display: isHistorySidebarCollapsed ? 'none' : 'flex',
+              visibility: isHistorySidebarCollapsed ? 'hidden' : 'visible' 
+            }}
+          >
             <div className="p-2">
               <Button 
                 variant="outline" 
@@ -307,7 +308,6 @@ const Hub = () => {
           </CollapsibleContent>
         </Collapsible>
 
-        {/* Mobile sidebar toggle */}
         <button 
           className="md:hidden fixed top-4 left-4 z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10"
           onClick={() => setIsHistorySidebarCollapsed(!isHistorySidebarCollapsed)}
@@ -315,7 +315,6 @@ const Hub = () => {
           {!isHistorySidebarCollapsed ? <ChevronLeft className="text-cyber-green" /> : <ChevronRight className="text-cyber-green" />}
         </button>
         
-        {/* Main Chat Area */}
         <div className="flex-grow flex flex-col">
           <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-cyber-green">
             {chatHistory.length === 0 ? (
@@ -410,11 +409,17 @@ const Hub = () => {
           </div>
         </div>
         
-        {/* Source Verification Panel with Collapsible */}
         <Collapsible
           open={!isSourcesPanelCollapsed}
           onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
           className="fixed md:relative inset-y-0 right-0 transform md:translate-x-0 transition-transform duration-300 ease-in-out w-72 bg-cyber-dark border-l border-white/10 flex flex-col z-30"
+          style={{
+            transform: isSourcesPanelCollapsed ? 'translateX(100%)' : 'translateX(0)',
+            width: isSourcesPanelCollapsed ? '0' : '18rem',
+            opacity: isSourcesPanelCollapsed ? 0 : 1,
+            visibility: isSourcesPanelCollapsed ? 'hidden' : 'visible',
+            overflow: 'hidden'
+          }}
         >
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center">
@@ -428,7 +433,12 @@ const Hub = () => {
             </CollapsibleTrigger>
           </div>
           
-          <CollapsibleContent className="flex-grow">
+          <CollapsibleContent forceMount className="flex-grow" 
+            style={{ 
+              display: isSourcesPanelCollapsed ? 'none' : 'block',
+              visibility: isSourcesPanelCollapsed ? 'hidden' : 'visible' 
+            }}
+          >
             <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-4">
               {activeSources.length > 0 ? (
                 <div className="space-y-4">
@@ -479,7 +489,6 @@ const Hub = () => {
           </CollapsibleContent>
         </Collapsible>
         
-        {/* Mobile source panel toggle */}
         <button 
           className="md:hidden fixed top-4 right-4 z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10"
           onClick={() => setIsSourcesPanelCollapsed(!isSourcesPanelCollapsed)}
@@ -488,7 +497,6 @@ const Hub = () => {
         </button>
       </div>
       
-      {/* Settings Center */}
       <SettingsCenter open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>
   );

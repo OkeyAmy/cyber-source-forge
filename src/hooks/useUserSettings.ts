@@ -49,16 +49,25 @@ export const useUserSettings = () => {
         throw error;
       }
 
+      // Parse JSON fields and initialize with defaults if needed
+      const searchPrefs = typeof data.search_preferences === 'string' 
+        ? JSON.parse(data.search_preferences) 
+        : data.search_preferences || {};
+        
+      const privacyPrefs = typeof data.privacy_settings === 'string' 
+        ? JSON.parse(data.privacy_settings) 
+        : data.privacy_settings || {};
+
       // Initialize with default values if search_preferences doesn't match new structure
       const updatedData = {
         ...data,
         search_preferences: {
-          focusArea: data.search_preferences?.focusArea || 'Research',
-          anonymousMode: data.search_preferences?.anonymousMode || false
+          focusArea: searchPrefs.focusArea || 'Research',
+          anonymousMode: searchPrefs.anonymousMode || false
         },
         privacy_settings: {
-          saveHistory: data.privacy_settings?.saveHistory || true,
-          dataCollection: data.privacy_settings?.dataCollection || true
+          saveHistory: privacyPrefs.saveHistory || true,
+          dataCollection: privacyPrefs.dataCollection || true
         }
       };
 

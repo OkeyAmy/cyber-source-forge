@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { User, Search, Shield, X, Save } from 'lucide-react';
+import { User, Search, Shield, X, Save, DownloadCloud, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { useUserSettings, SearchPreferences } from '@/hooks/useUserSettings';
+import { useChatHistory } from '@/hooks/useChatHistory';
 
 interface SettingsCenterProps {
   open: boolean;
@@ -25,16 +26,13 @@ interface SettingsCenterProps {
 const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
   const { toast } = useToast();
   const { settings, isLoading, updateSettings } = useUserSettings();
+  const { clearAllChatHistory, exportChatData } = useChatHistory();
   
   const [displayName, setDisplayName] = React.useState('Researcher');
   const [email, setEmail] = React.useState('');
   const [searchPreferences, setSearchPreferences] = React.useState<SearchPreferences>({
     focusArea: 'Research',
     anonymousMode: false,
-  });
-  const [privacySettings, setPrivacySettings] = React.useState({
-    saveHistory: true,
-    dataCollection: true
   });
 
   // Initialize form with user settings
@@ -45,10 +43,6 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
       setSearchPreferences(settings.search_preferences || {
         focusArea: 'Research',
         anonymousMode: false,
-      });
-      setPrivacySettings(settings.privacy_settings || {
-        saveHistory: true,
-        dataCollection: true
       });
     }
   }, [settings]);
@@ -67,11 +61,12 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
     });
   };
 
-  const handlePrivacySettingChange = (setting: keyof typeof privacySettings) => {
-    setPrivacySettings({
-      ...privacySettings,
-      [setting]: !privacySettings[setting]
-    });
+  const handleExportData = () => {
+    exportChatData();
+  };
+
+  const handleClearHistory = () => {
+    clearAllChatHistory();
   };
 
   const handleSave = () => {
@@ -79,7 +74,6 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
       display_name: displayName,
       email: email,
       search_preferences: searchPreferences,
-      privacy_settings: privacySettings
     });
   };
 
@@ -195,7 +189,7 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="anonymous-mode">Anonymous Mode</Label>
-                      <p className="text-xs text-white/60">Search without linking to your identity</p>
+                      <p className="text-xs text-white/60">Search without saving to your history</p>
                     </div>
                     <Switch 
                       id="anonymous-mode" 
@@ -209,43 +203,35 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
             
             <TabsContent value="privacy" className="space-y-4">
               <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">Privacy & Data Controls</h3>
+                <h3 className="text-lg font-semibold mb-4">Data Management</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="save-history">Save Search History</Label>
-                      <p className="text-xs text-white/60">Store your search queries for future reference</p>
-                    </div>
-                    <Switch 
-                      id="save-history" 
-                      checked={privacySettings.saveHistory}
-                      onCheckedChange={() => handlePrivacySettingChange('saveHistory')}
-                    />
+                  <div>
+                    <Button 
+                      variant="outline" 
+                      className="w-full cyber-button-outline flex items-center"
+                      onClick={handleExportData}
+                    >
+                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      Export Chat History
+                    </Button>
+                    <p className="text-xs text-white/60 mt-1">
+                      Download your entire chat history and personal data
+                    </p>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="data-collection">Data Collection</Label>
-                      <p className="text-xs text-white/60">Allow anonymous usage data collection</p>
-                    </div>
-                    <Switch 
-                      id="data-collection" 
-                      checked={privacySettings.dataCollection}
-                      onCheckedChange={() => handlePrivacySettingChange('dataCollection')}
-                    />
+                  <div>
+                    <Button 
+                      variant="destructive" 
+                      className="w-full flex items-center"
+                      onClick={handleClearHistory}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Clear Chat History
+                    </Button>
+                    <p className="text-xs text-white/60 mt-1">
+                      Remove all your conversations from the database
+                    </p>
                   </div>
-                </div>
-              </div>
-              
-              <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">Data Management</h3>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full cyber-button-outline">
-                    Export My Data
-                  </Button>
-                  <Button variant="destructive" className="w-full">
-                    Clear Search History
-                  </Button>
                 </div>
               </div>
             </TabsContent>
