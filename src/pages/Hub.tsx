@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Book, History, ChevronRight, ChevronLeft, Search, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle } from 'lucide-react';
+import { Send, Book, History, ChevronRight, ChevronLeft, Search, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CyberBackground from '@/components/CyberBackground';
@@ -8,13 +8,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import SettingsCenter from '@/components/SettingsCenter';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuth } from '@/contexts/AuthContext';
+import { useChatHistory, ChatMessage } from '@/hooks/useChatHistory';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 const Hub = () => {
   const [message, setMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; content: string; sources?: { url: string; title: string; }[] }[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isSourcePanelOpen, setIsSourcePanelOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeSources, setActiveSources] = useState<{ url: string; title: string; verified: boolean }[]>([]);
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false);
@@ -23,10 +24,30 @@ const Hub = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
+  const { user, signOut } = useAuth();
+  const { settings } = useUserSettings();
+  const { 
+    chatHistory: savedChats, 
+    currentChat,
+    createNewChat, 
+    updateChatMessages, 
+    deleteChat,
+    loadChat
+  } = useChatHistory();
+  
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
+  
+  // Load current chat messages if available
+  useEffect(() => {
+    if (currentChat) {
+      setChatHistory(currentChat.messages || []);
+    } else {
+      setChatHistory([]);
+    }
+  }, [currentChat]);
   
   // Check if there's a query in session storage and process it
   useEffect(() => {
@@ -37,9 +58,24 @@ const Hub = () => {
     }
   }, []);
   
-  const processInitialQuery = (query: string) => {
+  const processInitialQuery = async (query: string) => {
     setMessage('');
-    setChatHistory([...chatHistory, { role: 'user', content: query }]);
+    
+    // Create a new chat if none exists
+    let currentChatSession = currentChat;
+    if (!currentChatSession) {
+      currentChatSession = await createNewChat();
+      if (!currentChatSession) return;
+    }
+    
+    // Add user message
+    const updatedMessages = [
+      ...(currentChatSession.messages || []),
+      { role: 'user', content: query } as ChatMessage
+    ];
+    
+    setChatHistory(updatedMessages);
+    await updateChatMessages(currentChatSession.id, updatedMessages);
     
     setIsLoading(true);
     
@@ -65,12 +101,8 @@ const Hub = () => {
       
       setActiveSources(newSources);
       
-      setChatHistory([
-        ...chatHistory, 
-        { 
-          role: 'user', 
-          content: query 
-        },
+      const finalMessages = [
+        ...updatedMessages,
         { 
           role: 'assistant', 
           content: `Based on verified sources, I can provide a comprehensive answer to your query "${query}".
@@ -79,21 +111,39 @@ const Hub = () => {
           
           Current credibility metrics suggest implementing a multi-factorial approach that weighs source reputation, citation frequency, and verification status using a distributed ledger system.`,
           sources: newSources
-        }
-      ]);
+        } as ChatMessage
+      ];
+      
+      setChatHistory(finalMessages);
+      updateChatMessages(currentChatSession.id, finalMessages);
       
       setIsLoading(false);
     }, 2000);
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!message.trim()) return;
     
+    // Create a new chat if none exists
+    let currentChatSession = currentChat;
+    if (!currentChatSession) {
+      currentChatSession = await createNewChat();
+      if (!currentChatSession) return;
+    }
+    
     const userMessage = message;
     setMessage('');
-    setChatHistory([...chatHistory, { role: 'user', content: userMessage }]);
+    
+    // Add user message
+    const updatedMessages = [
+      ...chatHistory,
+      { role: 'user', content: userMessage } as ChatMessage
+    ];
+    
+    setChatHistory(updatedMessages);
+    await updateChatMessages(currentChatSession.id, updatedMessages);
     
     setIsLoading(true);
     
@@ -114,12 +164,8 @@ const Hub = () => {
       
       setActiveSources([...activeSources, ...newSources]);
       
-      setChatHistory([
-        ...chatHistory, 
-        { 
-          role: 'user', 
-          content: userMessage 
-        },
+      const finalMessages = [
+        ...updatedMessages,
         { 
           role: 'assistant', 
           content: `I've analyzed your question using blockchain-verified sources.
@@ -128,35 +174,53 @@ const Hub = () => {
           
           Would you like me to provide more specific information about any aspect of this process?`,
           sources: newSources
-        }
-      ]);
+        } as ChatMessage
+      ];
+      
+      setChatHistory(finalMessages);
+      updateChatMessages(currentChatSession.id, finalMessages);
       
       setIsLoading(false);
     }, 2000);
   };
   
-  const handleLogout = () => {
+  const handleLogout = async () => {
     toast({
       title: "Logging out",
       description: "Disconnecting from the neural network...",
     });
     
-    setTimeout(() => {
+    try {
+      await signOut();
       navigate('/');
-    }, 1500);
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const openSettings = () => {
     setIsSettingsOpen(true);
   };
 
-  const startNewChat = () => {
+  const startNewChat = async () => {
+    await createNewChat();
     setChatHistory([]);
     setMessage('');
-    toast({
-      title: "New Conversation Started",
-      description: "Your research session has been reset.",
-    });
+    setActiveSources([]);
+  };
+
+  const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    await deleteChat(chatId);
+  };
+
+  const handleChatSelect = async (chatId: string) => {
+    await loadChat(chatId);
   };
 
   return (
@@ -195,12 +259,26 @@ const Hub = () => {
             </div>
             
             <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-2">
-              {chatHistory.filter(msg => msg.role === 'user').map((msg, index) => (
-                <div key={index} className="mb-2 p-2 hover:bg-white/5 rounded cursor-pointer">
-                  <p className="text-sm text-white/80 truncate">{msg.content}</p>
+              {savedChats.map((chat) => (
+                <div 
+                  key={chat.id} 
+                  className={`mb-2 p-2 hover:bg-white/5 rounded cursor-pointer flex items-center justify-between ${currentChat?.id === chat.id ? 'bg-white/10' : ''}`}
+                  onClick={() => handleChatSelect(chat.id)}
+                >
+                  <p className="text-sm text-white/80 truncate">
+                    {chat.title}
+                  </p>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 opacity-50 hover:opacity-100"
+                    onClick={(e) => handleDeleteChat(e, chat.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               ))}
-              {chatHistory.length === 0 && (
+              {savedChats.length === 0 && (
                 <div className="text-center p-4 text-white/50">
                   <p>No history yet</p>
                   <p className="text-xs mt-2">Your research queries will appear here</p>
@@ -214,7 +292,7 @@ const Hub = () => {
                   <div className="w-8 h-8 rounded-full bg-cyber-green flex items-center justify-center mr-2">
                     <User className="w-4 h-4 text-cyber-dark" />
                   </div>
-                  <span className="text-sm">Researcher</span>
+                  <span className="text-sm">{settings?.display_name || 'Researcher'}</span>
                 </div>
                 <div className="flex">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openSettings}>
@@ -232,9 +310,9 @@ const Hub = () => {
         {/* Mobile sidebar toggle */}
         <button 
           className="md:hidden fixed top-4 left-4 z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10"
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          onClick={() => setIsHistorySidebarCollapsed(!isHistorySidebarCollapsed)}
         >
-          {isSidebarOpen ? <ChevronLeft className="text-cyber-green" /> : <ChevronRight className="text-cyber-green" />}
+          {!isHistorySidebarCollapsed ? <ChevronLeft className="text-cyber-green" /> : <ChevronRight className="text-cyber-green" />}
         </button>
         
         {/* Main Chat Area */}
@@ -404,9 +482,9 @@ const Hub = () => {
         {/* Mobile source panel toggle */}
         <button 
           className="md:hidden fixed top-4 right-4 z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10"
-          onClick={() => setIsSourcePanelOpen(!isSourcePanelOpen)}
+          onClick={() => setIsSourcesPanelCollapsed(!isSourcesPanelCollapsed)}
         >
-          {isSourcePanelOpen ? <ChevronRight className="text-cyber-green" /> : <ChevronLeft className="text-cyber-green" />}
+          {!isSourcesPanelCollapsed ? <ChevronRight className="text-cyber-green" /> : <ChevronLeft className="text-cyber-green" />}
         </button>
       </div>
       

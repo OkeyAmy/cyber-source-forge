@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { User, Search, Shield, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useUserSettings } from '@/hooks/useUserSettings';
 
 interface SettingsCenterProps {
   open: boolean;
@@ -16,31 +17,73 @@ interface SettingsCenterProps {
 
 const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
   const { toast } = useToast();
-  const [displayName, setDisplayName] = useState('Researcher');
-  const [email, setEmail] = useState('researcher@example.com');
-  const [settings, setSettings] = useState({
+  const { settings, isLoading, updateSettings } = useUserSettings();
+  
+  const [displayName, setDisplayName] = React.useState('Researcher');
+  const [email, setEmail] = React.useState('');
+  const [searchPreferences, setSearchPreferences] = React.useState({
     academicSources: true,
     blockchainVerified: false,
     recency: true,
+  });
+  const [privacySettings, setPrivacySettings] = React.useState({
     saveHistory: true,
     anonymousMode: false,
     dataCollection: true
   });
 
-  const handleSettingChange = (setting: keyof typeof settings) => {
-    setSettings({
-      ...settings,
-      [setting]: !settings[setting]
+  // Initialize form with user settings
+  useEffect(() => {
+    if (settings) {
+      setDisplayName(settings.display_name || 'Researcher');
+      setEmail(settings.email || '');
+      setSearchPreferences(settings.search_preferences || {
+        academicSources: true,
+        blockchainVerified: false,
+        recency: true,
+      });
+      setPrivacySettings(settings.privacy_settings || {
+        saveHistory: true,
+        anonymousMode: false,
+        dataCollection: true
+      });
+    }
+  }, [settings]);
+
+  const handleSearchPrefChange = (setting: keyof typeof searchPreferences) => {
+    setSearchPreferences({
+      ...searchPreferences,
+      [setting]: !searchPreferences[setting]
+    });
+  };
+
+  const handlePrivacySettingChange = (setting: keyof typeof privacySettings) => {
+    setPrivacySettings({
+      ...privacySettings,
+      [setting]: !privacySettings[setting]
     });
   };
 
   const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your preferences have been updated successfully."
+    updateSettings({
+      display_name: displayName,
+      email: email,
+      search_preferences: searchPreferences,
+      privacy_settings: privacySettings
     });
-    onClose();
   };
+
+  if (isLoading) {
+    return (
+      <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+        <SheetContent className="w-full sm:max-w-md bg-cyber-dark border-l border-white/10">
+          <div className="flex items-center justify-center h-full">
+            <p>Loading settings...</p>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -126,8 +169,8 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="academic-sources" 
-                      checked={settings.academicSources}
-                      onCheckedChange={() => handleSettingChange('academicSources')}
+                      checked={searchPreferences.academicSources}
+                      onCheckedChange={() => handleSearchPrefChange('academicSources')}
                     />
                   </div>
                   
@@ -138,8 +181,8 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="blockchain-verified" 
-                      checked={settings.blockchainVerified}
-                      onCheckedChange={() => handleSettingChange('blockchainVerified')}
+                      checked={searchPreferences.blockchainVerified}
+                      onCheckedChange={() => handleSearchPrefChange('blockchainVerified')}
                     />
                   </div>
                   
@@ -150,8 +193,8 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="recency" 
-                      checked={settings.recency}
-                      onCheckedChange={() => handleSettingChange('recency')}
+                      checked={searchPreferences.recency}
+                      onCheckedChange={() => handleSearchPrefChange('recency')}
                     />
                   </div>
                 </div>
@@ -169,8 +212,8 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="save-history" 
-                      checked={settings.saveHistory}
-                      onCheckedChange={() => handleSettingChange('saveHistory')}
+                      checked={privacySettings.saveHistory}
+                      onCheckedChange={() => handlePrivacySettingChange('saveHistory')}
                     />
                   </div>
                   
@@ -181,8 +224,8 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="anonymous-mode" 
-                      checked={settings.anonymousMode}
-                      onCheckedChange={() => handleSettingChange('anonymousMode')}
+                      checked={privacySettings.anonymousMode}
+                      onCheckedChange={() => handlePrivacySettingChange('anonymousMode')}
                     />
                   </div>
                   
@@ -193,8 +236,8 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="data-collection" 
-                      checked={settings.dataCollection}
-                      onCheckedChange={() => handleSettingChange('dataCollection')}
+                      checked={privacySettings.dataCollection}
+                      onCheckedChange={() => handlePrivacySettingChange('dataCollection')}
                     />
                   </div>
                 </div>

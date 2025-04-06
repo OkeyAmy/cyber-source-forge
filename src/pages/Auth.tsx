@@ -1,55 +1,130 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Mail, ArrowRight, Github, Bot } from 'lucide-react';
+import { Wallet, Mail, ArrowRight, Github, Bot, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import CyberBackground from '@/components/CyberBackground';
 import { useForm } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// Form validation schema
+const authFormSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
+
+type AuthFormValues = z.infer<typeof authFormSchema>;
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [session, setSession] = useState(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const form = useForm({
+  // Check for existing session on component mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) {
+        navigate('/hub');
+      }
+    });
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        if (session) {
+          navigate('/hub');
+        }
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+  
+  const form = useForm<AuthFormValues>({
+    resolver: zodResolver(authFormSchema),
     defaultValues: {
       email: '',
       password: '',
     },
   });
 
-  const handleSubmit = (values: { email: string, password: string }) => {
+  const handleSubmit = async (values: AuthFormValues) => {
     setIsLoading(true);
     
-    // Simulate auth process
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      let response;
+      
+      if (isSignUp) {
+        // Sign up flow
+        response = await supabase.auth.signUp({
+          email: values.email,
+          password: values.password,
+        });
+      } else {
+        // Sign in flow
+        response = await supabase.auth.signInWithPassword({
+          email: values.email,
+          password: values.password,
+        });
+      }
+      
+      if (response.error) {
+        throw response.error;
+      }
       
       toast({
-        title: "Authentication successful",
-        description: "Welcome to the Source Finder neural network.",
+        title: isSignUp ? "Account created" : "Authentication successful",
+        description: isSignUp ? 
+          "Welcome to Source Finder. Your neural link has been established." : 
+          "Welcome back to the Source Finder neural network.",
       });
       
-      // Redirect to hub page
-      navigate('/hub');
-    }, 1500);
+      // Redirect is handled by the auth state listener
+    } catch (error) {
+      console.error('Auth error:', error);
+      toast({
+        title: "Authentication error",
+        description: error.message || "Failed to authenticate. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleGitHubLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${window.location.origin}/hub`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('GitHub auth error:', error);
+      toast({
+        title: "GitHub Authentication Error",
+        description: error.message || "Failed to authenticate with GitHub.",
+        variant: "destructive",
+      });
+    }
   };
   
   const handleWalletConnect = () => {
     toast({
       title: "Web3 Authentication",
       description: "Wallet connection coming soon in future updates.",
-    });
-  };
-  
-  const handleOAuthLogin = (provider: string) => {
-    toast({
-      title: `${provider} Authentication`,
-      description: "OAuth integration coming soon in future updates.",
     });
   };
 
@@ -105,6 +180,7 @@ const Auth = () => {
                           className="cyber-input" 
                           type="email" 
                           {...field} 
+                          disabled={isLoading}
                         />
                       </FormControl>
                       <FormMessage />
@@ -124,6 +200,7 @@ const Auth = () => {
                           className="cyber-input" 
                           type="password" 
                           {...field} 
+                          disabled={isLoading}
                         />
                       </FormControl>
                       <FormMessage />
@@ -138,7 +215,7 @@ const Auth = () => {
                 >
                   {isLoading ? (
                     <>
-                      <Bot className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       <span>Authenticating...</span>
                     </>
                   ) : (
@@ -155,7 +232,8 @@ const Auth = () => {
               <Button 
                 variant="outline" 
                 className="w-full cyber-button-outline flex items-center justify-center"
-                onClick={() => handleOAuthLogin('GitHub')}
+                onClick={handleGitHubLogin}
+                disabled={isLoading}
               >
                 <Github className="mr-2 h-4 w-4" />
                 <span>Continue with GitHub</span>
@@ -167,6 +245,7 @@ const Auth = () => {
             <button 
               onClick={() => setIsSignUp(!isSignUp)} 
               className="text-cyber-green hover:text-cyber-cyan transition-colors"
+              disabled={isLoading}
             >
               {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
             </button>
