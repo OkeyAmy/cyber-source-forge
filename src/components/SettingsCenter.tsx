@@ -7,8 +7,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { useUserSettings } from '@/hooks/useUserSettings';
+import { useUserSettings, SearchPreferences } from '@/hooks/useUserSettings';
 
 interface SettingsCenterProps {
   open: boolean;
@@ -21,14 +28,12 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
   
   const [displayName, setDisplayName] = React.useState('Researcher');
   const [email, setEmail] = React.useState('');
-  const [searchPreferences, setSearchPreferences] = React.useState({
-    academicSources: true,
-    blockchainVerified: false,
-    recency: true,
+  const [searchPreferences, setSearchPreferences] = React.useState<SearchPreferences>({
+    focusArea: 'Research',
+    anonymousMode: false,
   });
   const [privacySettings, setPrivacySettings] = React.useState({
     saveHistory: true,
-    anonymousMode: false,
     dataCollection: true
   });
 
@@ -38,22 +43,27 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
       setDisplayName(settings.display_name || 'Researcher');
       setEmail(settings.email || '');
       setSearchPreferences(settings.search_preferences || {
-        academicSources: true,
-        blockchainVerified: false,
-        recency: true,
+        focusArea: 'Research',
+        anonymousMode: false,
       });
       setPrivacySettings(settings.privacy_settings || {
         saveHistory: true,
-        anonymousMode: false,
         dataCollection: true
       });
     }
   }, [settings]);
 
-  const handleSearchPrefChange = (setting: keyof typeof searchPreferences) => {
+  const handleFocusAreaChange = (value: string) => {
     setSearchPreferences({
       ...searchPreferences,
-      [setting]: !searchPreferences[setting]
+      focusArea: value as 'Research' | 'Social' | 'All'
+    });
+  };
+
+  const handleAnonymousModeChange = () => {
+    setSearchPreferences({
+      ...searchPreferences,
+      anonymousMode: !searchPreferences.anonymousMode
     });
   };
 
@@ -161,40 +171,36 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
             <TabsContent value="search" className="space-y-4">
               <div className="cyber-card p-4">
                 <h3 className="text-lg font-semibold mb-4">Search Preferences</h3>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="academic-sources">Academic Sources</Label>
-                      <p className="text-xs text-white/60">Prioritize academic and peer-reviewed sources</p>
+                      <Label htmlFor="focus-area">Focus Area</Label>
+                      <p className="text-xs text-white/60">Specify your focus area for search results</p>
                     </div>
-                    <Switch 
-                      id="academic-sources" 
-                      checked={searchPreferences.academicSources}
-                      onCheckedChange={() => handleSearchPrefChange('academicSources')}
-                    />
+                    <Select 
+                      value={searchPreferences.focusArea} 
+                      onValueChange={handleFocusAreaChange}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue placeholder="Research" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Research">Research</SelectItem>
+                        <SelectItem value="Social">Social</SelectItem>
+                        <SelectItem value="All">All</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
-                      <Label htmlFor="blockchain-verified">Blockchain Verification</Label>
-                      <p className="text-xs text-white/60">Only show sources with blockchain verification</p>
+                      <Label htmlFor="anonymous-mode">Anonymous Mode</Label>
+                      <p className="text-xs text-white/60">Search without linking to your identity</p>
                     </div>
                     <Switch 
-                      id="blockchain-verified" 
-                      checked={searchPreferences.blockchainVerified}
-                      onCheckedChange={() => handleSearchPrefChange('blockchainVerified')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="recency">Recency Preference</Label>
-                      <p className="text-xs text-white/60">Prioritize more recent sources</p>
-                    </div>
-                    <Switch 
-                      id="recency" 
-                      checked={searchPreferences.recency}
-                      onCheckedChange={() => handleSearchPrefChange('recency')}
+                      id="anonymous-mode" 
+                      checked={searchPreferences.anonymousMode}
+                      onCheckedChange={handleAnonymousModeChange}
                     />
                   </div>
                 </div>
@@ -214,18 +220,6 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       id="save-history" 
                       checked={privacySettings.saveHistory}
                       onCheckedChange={() => handlePrivacySettingChange('saveHistory')}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="anonymous-mode">Anonymous Mode</Label>
-                      <p className="text-xs text-white/60">Search without storing personal data</p>
-                    </div>
-                    <Switch 
-                      id="anonymous-mode" 
-                      checked={privacySettings.anonymousMode}
-                      onCheckedChange={() => handlePrivacySettingChange('anonymousMode')}
                     />
                   </div>
                   

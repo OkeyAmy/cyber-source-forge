@@ -5,14 +5,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export type SearchPreferences = {
-  academicSources: boolean;
-  blockchainVerified: boolean;
-  recency: boolean;
+  focusArea: 'Research' | 'Social' | 'All';
+  anonymousMode: boolean;
 };
 
 export type PrivacySettings = {
   saveHistory: boolean;
-  anonymousMode: boolean;
   dataCollection: boolean;
 };
 
@@ -51,7 +49,20 @@ export const useUserSettings = () => {
         throw error;
       }
 
-      setSettings(data);
+      // Initialize with default values if search_preferences doesn't match new structure
+      const updatedData = {
+        ...data,
+        search_preferences: {
+          focusArea: data.search_preferences?.focusArea || 'Research',
+          anonymousMode: data.search_preferences?.anonymousMode || false
+        },
+        privacy_settings: {
+          saveHistory: data.privacy_settings?.saveHistory || true,
+          dataCollection: data.privacy_settings?.dataCollection || true
+        }
+      };
+
+      setSettings(updatedData);
     } catch (err) {
       console.error('Error fetching user settings:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch user settings'));
