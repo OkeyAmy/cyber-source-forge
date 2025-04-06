@@ -1,12 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { User, Search, Shield, X } from 'lucide-react';
+import { User, Search, Shield, X, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 interface SettingsCenterProps {
   open: boolean;
@@ -14,6 +15,33 @@ interface SettingsCenterProps {
 }
 
 const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
+  const { toast } = useToast();
+  const [displayName, setDisplayName] = useState('Researcher');
+  const [email, setEmail] = useState('researcher@example.com');
+  const [settings, setSettings] = useState({
+    academicSources: true,
+    blockchainVerified: false,
+    recency: true,
+    saveHistory: true,
+    anonymousMode: false,
+    dataCollection: true
+  });
+
+  const handleSettingChange = (setting: keyof typeof settings) => {
+    setSettings({
+      ...settings,
+      [setting]: !settings[setting]
+    });
+  };
+
+  const handleSave = () => {
+    toast({
+      title: "Settings Saved",
+      description: "Your preferences have been updated successfully."
+    });
+    onClose();
+  };
+
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent className="w-full sm:max-w-md bg-cyber-dark border-l border-white/10">
@@ -49,11 +77,24 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="display-name">Display Name</Label>
-                    <Input id="display-name" className="cyber-input" placeholder="Researcher" />
+                    <Input 
+                      id="display-name" 
+                      className="cyber-input" 
+                      placeholder="Researcher" 
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" className="cyber-input" type="email" placeholder="researcher@example.com" />
+                    <Input 
+                      id="email" 
+                      className="cyber-input" 
+                      type="email" 
+                      placeholder="researcher@example.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                   </div>
                 </div>
               </div>
@@ -83,7 +124,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       <Label htmlFor="academic-sources">Academic Sources</Label>
                       <p className="text-xs text-white/60">Prioritize academic and peer-reviewed sources</p>
                     </div>
-                    <Switch id="academic-sources" defaultChecked />
+                    <Switch 
+                      id="academic-sources" 
+                      checked={settings.academicSources}
+                      onCheckedChange={() => handleSettingChange('academicSources')}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -91,7 +136,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       <Label htmlFor="blockchain-verified">Blockchain Verification</Label>
                       <p className="text-xs text-white/60">Only show sources with blockchain verification</p>
                     </div>
-                    <Switch id="blockchain-verified" />
+                    <Switch 
+                      id="blockchain-verified" 
+                      checked={settings.blockchainVerified}
+                      onCheckedChange={() => handleSettingChange('blockchainVerified')}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -99,7 +148,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       <Label htmlFor="recency">Recency Preference</Label>
                       <p className="text-xs text-white/60">Prioritize more recent sources</p>
                     </div>
-                    <Switch id="recency" defaultChecked />
+                    <Switch 
+                      id="recency" 
+                      checked={settings.recency}
+                      onCheckedChange={() => handleSettingChange('recency')}
+                    />
                   </div>
                 </div>
               </div>
@@ -114,7 +167,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       <Label htmlFor="save-history">Save Search History</Label>
                       <p className="text-xs text-white/60">Store your search queries for future reference</p>
                     </div>
-                    <Switch id="save-history" defaultChecked />
+                    <Switch 
+                      id="save-history" 
+                      checked={settings.saveHistory}
+                      onCheckedChange={() => handleSettingChange('saveHistory')}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -122,7 +179,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       <Label htmlFor="anonymous-mode">Anonymous Mode</Label>
                       <p className="text-xs text-white/60">Search without storing personal data</p>
                     </div>
-                    <Switch id="anonymous-mode" />
+                    <Switch 
+                      id="anonymous-mode" 
+                      checked={settings.anonymousMode}
+                      onCheckedChange={() => handleSettingChange('anonymousMode')}
+                    />
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -130,7 +191,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       <Label htmlFor="data-collection">Data Collection</Label>
                       <p className="text-xs text-white/60">Allow anonymous usage data collection</p>
                     </div>
-                    <Switch id="data-collection" defaultChecked />
+                    <Switch 
+                      id="data-collection" 
+                      checked={settings.dataCollection}
+                      onCheckedChange={() => handleSettingChange('dataCollection')}
+                    />
                   </div>
                 </div>
               </div>
@@ -151,7 +216,10 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
         </div>
         
         <SheetFooter className="border-t border-white/10 pt-4">
-          <Button className="cyber-button w-full" onClick={onClose}>Save Changes</Button>
+          <Button className="cyber-button w-full" onClick={handleSave}>
+            <Save className="h-4 w-4 mr-2" />
+            Save Changes
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

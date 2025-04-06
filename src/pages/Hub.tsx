@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Book, History, ChevronRight, ChevronLeft, Search, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink } from 'lucide-react';
+import { Send, Book, History, ChevronRight, ChevronLeft, Search, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import CyberBackground from '@/components/CyberBackground';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import SettingsCenter from '@/components/SettingsCenter';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const Hub = () => {
   const [message, setMessage] = useState('');
@@ -16,6 +17,8 @@ const Hub = () => {
   const [isSourcePanelOpen, setIsSourcePanelOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeSources, setActiveSources] = useState<{ url: string; title: string; verified: boolean }[]>([]);
+  const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(false);
+  const [isHistorySidebarCollapsed, setIsHistorySidebarCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -147,51 +150,84 @@ const Hub = () => {
     setIsSettingsOpen(true);
   };
 
+  const startNewChat = () => {
+    setChatHistory([]);
+    setMessage('');
+    toast({
+      title: "New Conversation Started",
+      description: "Your research session has been reset.",
+    });
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-cyber-dark text-white relative">
       <CyberBackground />
       
       <div className="flex flex-grow relative z-10">
-        {/* Chat History Sidebar */}
-        <div className={`fixed md:relative inset-y-0 left-0 transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-cyber-dark border-r border-white/10 flex flex-col z-30`}>
-          <div className="p-4 border-b border-white/10 flex items-center">
-            <History className="text-cyber-green mr-2" />
-            <h2 className="text-xl font-bold">Query History</h2>
+        {/* Chat History Sidebar with Collapsible */}
+        <Collapsible 
+          open={!isHistorySidebarCollapsed} 
+          onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
+          className="fixed md:relative inset-y-0 left-0 transform md:translate-x-0 transition-transform duration-300 ease-in-out w-64 bg-cyber-dark border-r border-white/10 flex flex-col z-30"
+        >
+          <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center">
+              <History className="text-cyber-green mr-2" />
+              <h2 className="text-xl font-bold">Query History</h2>
+            </div>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:flex hidden">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
           </div>
           
-          <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-2">
-            {chatHistory.filter(msg => msg.role === 'user').map((msg, index) => (
-              <div key={index} className="mb-2 p-2 hover:bg-white/5 rounded cursor-pointer">
-                <p className="text-sm text-white/80 truncate">{msg.content}</p>
-              </div>
-            ))}
-            {chatHistory.length === 0 && (
-              <div className="text-center p-4 text-white/50">
-                <p>No history yet</p>
-                <p className="text-xs mt-2">Your research queries will appear here</p>
-              </div>
-            )}
-          </div>
-          
-          <div className="p-4 border-t border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-cyber-green flex items-center justify-center mr-2">
-                  <User className="w-4 h-4 text-cyber-dark" />
+          <CollapsibleContent className="flex-grow flex flex-col">
+            <div className="p-2">
+              <Button 
+                variant="outline" 
+                className="w-full mb-3 bg-cyber-green/10 hover:bg-cyber-green/20 text-cyber-green border-cyber-green/30"
+                onClick={startNewChat}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                New Chat
+              </Button>
+            </div>
+            
+            <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-2">
+              {chatHistory.filter(msg => msg.role === 'user').map((msg, index) => (
+                <div key={index} className="mb-2 p-2 hover:bg-white/5 rounded cursor-pointer">
+                  <p className="text-sm text-white/80 truncate">{msg.content}</p>
                 </div>
-                <span className="text-sm">Researcher</span>
-              </div>
-              <div className="flex">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openSettings}>
-                  <Settings className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
+              ))}
+              {chatHistory.length === 0 && (
+                <div className="text-center p-4 text-white/50">
+                  <p>No history yet</p>
+                  <p className="text-xs mt-2">Your research queries will appear here</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t border-white/10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-cyber-green flex items-center justify-center mr-2">
+                    <User className="w-4 h-4 text-cyber-dark" />
+                  </div>
+                  <span className="text-sm">Researcher</span>
+                </div>
+                <div className="flex">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={openSettings}>
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Mobile sidebar toggle */}
         <button 
@@ -296,71 +332,74 @@ const Hub = () => {
           </div>
         </div>
         
-        {/* Source Verification Panel */}
-        <div className={`fixed md:relative inset-y-0 right-0 transform ${isSourcePanelOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out w-72 bg-cyber-dark border-l border-white/10 flex flex-col z-30`}>
+        {/* Source Verification Panel with Collapsible */}
+        <Collapsible
+          open={!isSourcesPanelCollapsed}
+          onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
+          className="fixed md:relative inset-y-0 right-0 transform md:translate-x-0 transition-transform duration-300 ease-in-out w-72 bg-cyber-dark border-l border-white/10 flex flex-col z-30"
+        >
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center">
               <Book className="text-cyber-green mr-2" />
               <h2 className="text-xl font-bold">Verified Sources</h2>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 md:hidden"
-              onClick={() => setIsSourcePanelOpen(!isSourcePanelOpen)}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:flex hidden">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </CollapsibleTrigger>
           </div>
           
-          <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-4">
-            {activeSources.length > 0 ? (
-              <div className="space-y-4">
-                {activeSources.map((source, index) => (
-                  <div key={index} className="cyber-card p-3">
-                    <div className="flex items-start">
-                      <div className={`min-w-[24px] h-6 flex items-center justify-center rounded-full ${source.verified ? 'text-cyber-green' : 'text-cyber-magenta'} mr-2`}>
-                        <Shield className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-medium text-white mb-1">{source.title}</h3>
-                        <a 
-                          href={source.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="text-xs text-cyber-cyan hover:underline flex items-center"
-                        >
-                          <span className="truncate max-w-[180px]">{source.url}</span>
-                          <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
-                        </a>
-                        <div className="flex mt-2">
-                          <span className={`text-xs py-0.5 px-2 rounded-full ${source.verified ? 'bg-cyber-green/20 text-cyber-green' : 'bg-cyber-magenta/20 text-cyber-magenta'}`}>
-                            {source.verified ? 'Blockchain Verified' : 'Pending Verification'}
-                          </span>
+          <CollapsibleContent className="flex-grow">
+            <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-4">
+              {activeSources.length > 0 ? (
+                <div className="space-y-4">
+                  {activeSources.map((source, index) => (
+                    <div key={index} className="cyber-card p-3">
+                      <div className="flex items-start">
+                        <div className={`min-w-[24px] h-6 flex items-center justify-center rounded-full ${source.verified ? 'text-cyber-green' : 'text-cyber-magenta'} mr-2`}>
+                          <Shield className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-white mb-1">{source.title}</h3>
+                          <a 
+                            href={source.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-xs text-cyber-cyan hover:underline flex items-center"
+                          >
+                            <span className="truncate max-w-[180px]">{source.url}</span>
+                            <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
+                          </a>
+                          <div className="flex mt-2">
+                            <span className={`text-xs py-0.5 px-2 rounded-full ${source.verified ? 'bg-cyber-green/20 text-cyber-green' : 'bg-cyber-magenta/20 text-cyber-magenta'}`}>
+                              {source.verified ? 'Blockchain Verified' : 'Pending Verification'}
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="mt-2 flex justify-end">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6"
+                          onClick={() => toast({ title: "Source Saved", description: "Source bookmarked for future reference" })}
+                        >
+                          <BookmarkPlus className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="mt-2 flex justify-end">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6"
-                        onClick={() => toast({ title: "Source Saved", description: "Source bookmarked for future reference" })}
-                      >
-                        <BookmarkPlus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center p-4 text-white/50">
-                <p>No sources yet</p>
-                <p className="text-xs mt-2">Sources will appear here when your research query is processed</p>
-              </div>
-            )}
-          </div>
-        </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 text-white/50">
+                  <p>No sources yet</p>
+                  <p className="text-xs mt-2">Sources will appear here when your research query is processed</p>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
         
         {/* Mobile source panel toggle */}
         <button 
