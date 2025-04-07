@@ -30,7 +30,7 @@ const CyberSearch: React.FC = () => {
     <div className="relative w-full max-w-4xl mx-auto my-12 px-4">
       <div className="absolute inset-0 bg-cyber-radial opacity-30 blur-lg"></div>
       
-      <div className="relative bg-cyber-dark border-2 border-cyber-green rounded-lg glassmorphism p-8 animate-float">
+      <div className="relative bg-cyber-dark border-2 border-cyber-green rounded-lg glassmorphism p-8 animate-float shadow-[0_0_15px_rgba(0,255,157,0.4)]">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-lg -z-10">
           <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-magenta rounded-full filter blur-3xl opacity-10"></div>
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyber-cyan rounded-full filter blur-3xl opacity-10"></div>
@@ -46,13 +46,13 @@ const CyberSearch: React.FC = () => {
           </p>
           
           <form onSubmit={handleSearch} className="relative">
-            <div className={`relative transition-all duration-500 ${isSearching ? 'animate-pulse-neon' : ''}`}>
+            <div className={`relative transition-all duration-500 max-w-[80%] mx-auto ${isSearching ? 'animate-pulse-neon' : ''}`}>
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Enter your research query..."
-                className="cyber-input w-full pl-12 pr-12 py-4 text-lg"
+                className="cyber-input w-full pl-12 pr-12 py-4 text-lg rounded-full focus:shadow-[0_0_20px_rgba(0,255,157,0.6)] transition-shadow duration-300"
               />
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-cyber-green w-5 h-5" />
               
@@ -60,7 +60,7 @@ const CyberSearch: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white hover:text-cyber-green"
+                  className="absolute right-16 top-1/2 transform -translate-y-1/2 text-white hover:text-cyber-green transition-colors duration-300"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -68,7 +68,7 @@ const CyberSearch: React.FC = () => {
               
               <button
                 type="button"
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-cyber-green"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-cyber-green transition-colors duration-300"
               >
                 <Mic className="w-5 h-5" />
               </button>
@@ -77,7 +77,7 @@ const CyberSearch: React.FC = () => {
             <div className="flex justify-center mt-6">
               <Button
                 type="submit"
-                className="cyber-button"
+                className="cyber-button hover:shadow-[0_0_15px_rgba(0,255,157,0.5)] transition-shadow duration-300"
                 disabled={isSearching || !query.trim()}
               >
                 {isSearching ? (
@@ -96,9 +96,9 @@ const CyberSearch: React.FC = () => {
           </form>
           
           <div className="flex flex-wrap justify-center gap-2 mt-6">
-            <div className="cyber-badge">Blockchain Verified</div>
-            <div className="cyber-badge">Neural Analysis</div>
-            <div className="cyber-badge">Decentralized</div>
+            <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">Blockchain Verified</div>
+            <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">Neural Analysis</div>
+            <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">Decentralized</div>
           </div>
         </div>
       </div>

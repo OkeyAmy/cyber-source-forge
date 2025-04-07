@@ -20,6 +20,12 @@ const authFormSchema = z.object({
 
 type AuthFormValues = z.infer<typeof authFormSchema>;
 
+// Function to generate a random username
+const generateUsername = (): string => {
+  const randomChars = Math.random().toString(36).substring(2, 10);
+  return `User_${randomChars}`;
+};
+
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,10 +70,18 @@ const Auth = () => {
       let response;
       
       if (isSignUp) {
+        // Generate a username for new signups
+        const username = generateUsername();
+        
         // Sign up flow
         response = await supabase.auth.signUp({
           email: values.email,
           password: values.password,
+          options: {
+            data: {
+              username: username,
+            }
+          }
         });
       } else {
         // Sign in flow
@@ -84,7 +98,7 @@ const Auth = () => {
       toast({
         title: isSignUp ? "Account created" : "Authentication successful",
         description: isSignUp ? 
-          "Welcome to Source Finder. Your neural link has been established." : 
+          `Welcome to Source Finder. Your neural link has been established. Your username is ${response.data?.user?.user_metadata?.username || 'User'}` : 
           "Welcome back to the Source Finder neural network.",
       });
       
@@ -135,7 +149,7 @@ const Auth = () => {
       <div className="flex flex-col items-center justify-center flex-grow px-4 relative z-10">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
-            <div className="inline-block border-2 border-cyber-green rounded-full p-4 animate-pulse-neon mb-4">
+            <div className="inline-block border-2 border-cyber-green rounded-full p-4 animate-pulse-neon mb-4 shadow-[0_0_15px_rgba(0,255,157,0.4)]">
               <Bot className="w-8 h-8 text-cyber-green" />
             </div>
             <h1 className="text-3xl font-bold cyber-text-gradient mb-2">
@@ -146,10 +160,10 @@ const Auth = () => {
             </p>
           </div>
           
-          <div className="cyber-card p-6 mb-6">
+          <div className="cyber-card p-6 mb-6 shadow-[0_0_15px_rgba(0,255,157,0.4)] border border-white/20 hover:border-[#00ff9d]/40 transition-colors duration-300">
             <Button 
               variant="outline" 
-              className="w-full mb-4 cyber-button-outline flex items-center justify-center"
+              className="w-full mb-4 cyber-button-outline flex items-center justify-center hover:border-[#00ff9d]/40 hover:text-[#00ff9d] transition-colors duration-300"
               onClick={handleWalletConnect}
             >
               <Wallet className="mr-2 h-4 w-4" />
@@ -177,7 +191,7 @@ const Auth = () => {
                       <FormControl>
                         <Input 
                           placeholder="Enter your email" 
-                          className="cyber-input" 
+                          className="cyber-input rounded-md focus:shadow-[0_0_15px_rgba(0,255,157,0.4)] transition-all duration-300" 
                           type="email" 
                           {...field} 
                           disabled={isLoading}
@@ -197,7 +211,7 @@ const Auth = () => {
                       <FormControl>
                         <Input 
                           placeholder="Enter your password" 
-                          className="cyber-input" 
+                          className="cyber-input rounded-md focus:shadow-[0_0_15px_rgba(0,255,157,0.4)] transition-all duration-300" 
                           type="password" 
                           {...field} 
                           disabled={isLoading}
@@ -210,7 +224,7 @@ const Auth = () => {
                 
                 <Button 
                   type="submit" 
-                  className="w-full cyber-button" 
+                  className="w-full cyber-button hover:shadow-[0_0_15px_rgba(0,255,157,0.5)] transition-shadow duration-300" 
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -231,7 +245,7 @@ const Auth = () => {
             <div className="mt-4 grid grid-cols-1 gap-2">
               <Button 
                 variant="outline" 
-                className="w-full cyber-button-outline flex items-center justify-center"
+                className="w-full cyber-button-outline flex items-center justify-center hover:border-[#00ff9d]/40 hover:text-[#00ff9d] transition-colors duration-300"
                 onClick={handleGitHubLogin}
                 disabled={isLoading}
               >
@@ -244,7 +258,7 @@ const Auth = () => {
           <div className="text-center">
             <button 
               onClick={() => setIsSignUp(!isSignUp)} 
-              className="text-cyber-green hover:text-cyber-cyan transition-colors"
+              className="text-cyber-green hover:text-[#00ff9d] transition-colors duration-300"
               disabled={isLoading}
             >
               {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
