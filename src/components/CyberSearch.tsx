@@ -37,7 +37,7 @@ const CyberSearch: React.FC = () => {
         </div>
         
         <h2 className="text-3xl md:text-4xl font-bold mb-6 cyber-text-gradient text-center">
-          Neural Source Intelligence
+          AI Source Intelligence
         </h2>
         
         <div className="max-w-xl mx-auto">

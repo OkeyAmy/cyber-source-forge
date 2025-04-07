@@ -26,8 +26,9 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
         position === 'left' 
           ? 'left-4 md:left-6' 
           : 'right-4 md:right-6',
-        isMobile ? 'bottom-16' : 'top-24', // Changed from top-1/2 to top-24 for better positioning
-        isCollapsed ? 'opacity-100' : 'opacity-80 hover:opacity-100', // Make visible always but transparent when not collapsed
+        isMobile ? 'bottom-16' : 'top-24', 
+        // Remove the conditional opacity to ensure visibility in all screen sizes
+        "opacity-90 hover:opacity-100",
         className
       )}
       onClick={onClick}

@@ -5,7 +5,7 @@ import { Search, Shield, Database, Bot } from 'lucide-react';
 const features = [
   {
     icon: <Search className="w-10 h-10 text-cyber-magenta" />,
-    title: "Neural Source Detection",
+    title: "AI Source Detection",
     description: "Powerful AI algorithms scan and retrieve the most relevant and credible sources for your research query."
   },
   {

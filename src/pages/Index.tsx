@@ -22,7 +22,7 @@ const Index = () => {
       
       // Show welcome toast
       toast({
-        title: "Neural Systems Online",
+        title: "AI Systems Online",
         description: "Welcome to SourceFinder. Blockchain verification active.",
         variant: "default"
       });
@@ -39,7 +39,7 @@ const Index = () => {
             <Bot className="w-8 h-8 text-cyber-green animate-spin" />
           </div>
           <h2 className="text-cyber-green text-xl font-mono animate-pulse">
-            Initializing Neural Systems
+            Initializing AI Systems
           </h2>
           <div className="w-48 h-1 bg-cyber-dark mx-auto mt-4 overflow-hidden rounded-full">
             <div className="h-full bg-cyber-green animate-laser-line"></div>
@@ -59,7 +59,7 @@ const Index = () => {
         <section className="py-16 md:py-24 px-4 relative">
           <div className="max-w-4xl mx-auto text-center relative z-10">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 cyber-text-gradient leading-tight">
-              Neural Source Intelligence
+              AI Source Intelligence
             </h1>
             <p className="text-xl md:text-2xl text-white/80 max-w-2xl mx-auto mb-12 leading-relaxed">
               Cutting-edge AI research tool that retrieves, verifies, and summarizes credible sources with blockchain security.
@@ -114,7 +114,7 @@ const Index = () => {
         <CyberSearch />
         <CyberResults />
 
-        {/* Add Three.js Scene with improved container */}
+        {/* Three.js Scene with improved container */}
         <div className="max-w-5xl mx-auto mb-24 px-4">
           <div className="cyber-card h-[300px] md:h-[500px] overflow-hidden relative rounded-xl border-cyber-green/20">
             <div className="absolute inset-0">
@@ -123,10 +123,10 @@ const Index = () => {
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-cyber-dark/90 to-transparent p-8">
               <div className="max-w-md text-left">
                 <h3 className="text-2xl md:text-4xl font-bold mb-4 cyber-text-gradient">
-                  Neural Network Visualization
+                  AI Visualization
                 </h3>
                 <p className="text-white/70 mb-6 text-lg">
-                  Experience the power of our neural network as it processes information across the digital frontier.
+                  Experience the power of our AI as it processes information across the digital frontier.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <div className="cyber-badge inline-block">Real-time Processing</div>
