@@ -6,6 +6,7 @@ import CyberSearch from '@/components/CyberSearch';
 import CyberResults from '@/components/CyberResults';
 import CyberFeatures from '@/components/CyberFeatures';
 import CyberFooter from '@/components/CyberFooter';
+import CyberThreeScene from '@/components/CyberThreeScene';
 import { Bot } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
@@ -67,6 +68,27 @@ const Index = () => {
         
         <CyberSearch />
         <CyberResults />
+
+        {/* Add Three.js Scene */}
+        <div className="max-w-4xl mx-auto mb-16 px-4">
+          <div className="cyber-card h-[300px] md:h-[400px] overflow-hidden relative">
+            <div className="absolute inset-0">
+              <CyberThreeScene />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-cyber-dark/80 to-transparent p-8">
+              <div className="max-w-md text-left">
+                <h3 className="text-2xl md:text-3xl font-bold mb-4 cyber-text-gradient">
+                  Neural Network Visualization
+                </h3>
+                <p className="text-white/70 mb-4">
+                  Experience the power of our neural network as it processes information across the digital frontier.
+                </p>
+                <div className="cyber-badge inline-block">Real-time Processing</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <CyberFeatures />
       </main>
       

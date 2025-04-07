@@ -19,7 +19,7 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
   return (
     <button 
       className={cn(
-        "fixed z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10 hover:border-[#00ff9d]/40 transition-all duration-300",
+        "fixed z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10 hover:border-[#00ff9d]/40 transition-all duration-300 hover:shadow-[0_0_10px_rgba(0,255,157,0.4)]",
         position === 'left' ? 'left-4' : 'right-4',
         className
       )}
