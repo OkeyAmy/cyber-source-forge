@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Book, History, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2, Download, Save, AlertTriangle } from 'lucide-react';
+import { Send, Book, History, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2, Download, Save, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
