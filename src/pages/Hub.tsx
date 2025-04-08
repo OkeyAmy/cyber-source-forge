@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Book, History, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2, Download, Save, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Send, Book, History, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2, Download, Save, AlertTriangle, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -15,13 +15,20 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useAnonymousMode } from '@/hooks/useAnonymousMode';
 import LoadingState from '@/components/LoadingState';
 import SidebarTrigger from '@/components/SidebarTrigger';
+import SourceCard, { SourceType } from '@/components/SourceCard';
+import HorizontalSourceScroller from '@/components/HorizontalSourceScroller';
+import FocusAreaSelector from '@/components/FocusAreaSelector';
+import { api } from '@/services/api';
+
+type FocusArea = 'All' | 'Research' | 'Social';
 
 const Hub = () => {
   const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [activeSources, setActiveSources] = useState<{ url: string; title: string; verified: boolean }[]>([]);
+  const [activeSources, setActiveSources] = useState<SourceType[]>([]);
+  const [focusArea, setFocusArea] = useState<FocusArea>('All');
   const [isSourcesPanelCollapsed, setIsSourcesPanelCollapsed] = useState(() => {
     return localStorage.getItem('sourcesPanelCollapsed') === 'true';
   });
@@ -74,6 +81,20 @@ const Hub = () => {
     }
   }, []);
   
+  // Load initial sources
+  useEffect(() => {
+    const loadSources = async () => {
+      try {
+        const sources = await api.getSources();
+        setActiveSources(sources);
+      } catch (error) {
+        console.error('Failed to load sources:', error);
+      }
+    };
+    
+    loadSources();
+  }, []);
+  
   const processInitialQuery = async (query: string) => {
     setMessage('');
     
@@ -97,37 +118,22 @@ const Hub = () => {
     
     setIsLoading(true);
     
-    setTimeout(() => {
-      const newSources = [
-        { 
-          url: 'https://example.com/research-paper-1', 
-          title: 'Comprehensive Analysis of Neural Networks in Source Verification',
-          verified: true 
-        },
-        { 
-          url: 'https://example.com/blockchain-verification', 
-          title: 'Blockchain-Based Verification Models for Academic Research',
-          verified: true 
-        },
-        { 
-          url: 'https://example.com/credibility-metrics', 
-          title: 'Establishing Credibility Metrics in Digital Source Evaluation',
-          verified: false 
-        },
-      ];
+    try {
+      const response = await api.processQuery(query, focusArea);
       
-      setActiveSources(newSources);
+      setActiveSources(prevSources => {
+        // Add new sources to the active sources without duplicates
+        const existingLinks = new Set(prevSources.map(s => s.link));
+        const newSources = response.sources.filter(s => !existingLinks.has(s.link));
+        return [...prevSources, ...newSources];
+      });
       
       const finalMessages = [
         ...updatedMessages,
         { 
           role: 'assistant', 
-          content: `Based on verified sources, I can provide a comprehensive answer to your query "${query}".
-          
-          The integration of neural networks in source verification has shown significant improvements in accuracy rates, with an average increase of 27% compared to traditional methods. Blockchain-based verification adds an immutable layer of trust, particularly valuable for academic research where provenance is crucial.
-          
-          Current credibility metrics suggest implementing a multi-factorial approach that weighs source reputation, citation frequency, and verification status using a distributed ledger system.`,
-          sources: newSources
+          content: response.content,
+          sources: response.sources
         } as ChatMessage
       ];
       
@@ -137,9 +143,16 @@ const Hub = () => {
       if (!isAnonymous) {
         updateChatMessages(currentChatSession.id, finalMessages);
       }
-      
+    } catch (error) {
+      console.error('Error processing query:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your query. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,32 +183,22 @@ const Hub = () => {
     
     setIsLoading(true);
     
-    setTimeout(() => {
-      const newSources = [
-        { 
-          url: 'https://example.com/advanced-algorithms', 
-          title: 'Advanced Algorithms in Source Verification Systems',
-          verified: true 
-        },
-        { 
-          url: 'https://example.com/neural-networks', 
-          title: 'Neural Network Applications in Information Verification',
-          verified: true 
-        },
-      ];
+    try {
+      const response = await api.processQuery(userMessage, focusArea);
       
-      setActiveSources([...activeSources, ...newSources]);
+      setActiveSources(prevSources => {
+        // Add new sources to the active sources without duplicates
+        const existingLinks = new Set(prevSources.map(s => s.link));
+        const newSources = response.sources.filter(s => !existingLinks.has(s.link));
+        return [...prevSources, ...newSources];
+      });
       
       const finalMessages = [
         ...updatedMessages,
         { 
           role: 'assistant', 
-          content: `I've analyzed your question using blockchain-verified sources.
-          
-          The implementation of advanced algorithms in source verification systems has demonstrated a 43% improvement in accuracy when combined with neural network applications. These systems utilize a three-layer verification process that cross-references data points against established academic sources.
-          
-          Would you like me to provide more specific information about any aspect of this process?`,
-          sources: newSources
+          content: response.content,
+          sources: response.sources
         } as ChatMessage
       ];
       
@@ -205,15 +208,22 @@ const Hub = () => {
       if (!isAnonymous) {
         updateChatMessages(currentChatSession.id, finalMessages);
       }
-      
+    } catch (error) {
+      console.error('Error processing query:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your query. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
   
   const handleLogout = async () => {
     toast({
       title: "Logging out",
-      description: "Disconnecting from the neural network...",
+      description: "Disconnecting from the AI system...",
     });
     
     try {
@@ -237,8 +247,6 @@ const Hub = () => {
     await createNewChat();
     setChatHistory([]);
     setMessage('');
-    setActiveSources([]);
-    // Reset anonymous mode when starting a new chat
     resetAnonymousMode();
   };
 
@@ -306,6 +314,7 @@ const Hub = () => {
       <CyberBackground />
       
       <div className="flex flex-grow relative z-10">
+        {/* Query History Sidebar */}
         <Collapsible 
           open={!isHistorySidebarCollapsed} 
           onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
@@ -454,20 +463,28 @@ const Hub = () => {
           isCollapsed={isHistorySidebarCollapsed}
           onClick={() => setIsHistorySidebarCollapsed(!isHistorySidebarCollapsed)}
           position="left"
-          className="md:hidden top-4"
+          className="md:block"
         />
         
+        {/* Main Chat Content */}
         <div className="flex-grow flex flex-col">
           <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-cyber-green">
             {chatHistory.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
                 <div className="mb-4 p-4 rounded-full bg-cyber-dark/80 border border-cyber-green animate-pulse-neon shadow-[0_0_15px_rgba(0,255,157,0.4)]">
-                  <History className="w-8 h-8 text-cyber-green" />
+                  <Search className="w-8 h-8 text-cyber-green" />
                 </div>
-                <h2 className="text-2xl font-bold cyber-text-gradient mb-2">Neural Research Hub</h2>
+                <h2 className="text-2xl font-bold cyber-text-gradient mb-2">Source Finder</h2>
                 <p className="text-white/60 max-w-md mb-4">
-                  Your AI-powered research assistant with blockchain-verified sources
+                  Your AI-powered research assistant with verified sources
                 </p>
+                
+                <FocusAreaSelector 
+                  selected={focusArea}
+                  onChange={setFocusArea}
+                  className="mt-4"
+                />
+                
                 <p className="text-white/40 text-sm">
                   Start by typing your research query below
                 </p>
@@ -486,48 +503,38 @@ const Hub = () => {
               </div>
             ) : (
               <div className="space-y-6">
+                {/* Focus Area Selector when chat has content */}
+                <FocusAreaSelector 
+                  selected={focusArea}
+                  onChange={setFocusArea}
+                />
+                
                 {isLoading && chatHistory.length === 0 ? (
                   <LoadingState type="chat" count={3} />
                 ) : (
                   chatHistory.map((msg, index) => (
-                    <div 
-                      key={index} 
-                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} max-w-3xl ${msg.role === 'user' ? 'ml-auto' : 'mr-auto'}`}
-                    >
+                    <div key={index} className="space-y-2">
                       <div 
-                        className={`rounded-lg p-4 ${
-                          msg.role === 'user' 
-                            ? 'bg-cyber-magenta/20 border border-cyber-magenta/40 text-white hover:shadow-[0_0_10px_rgba(255,0,255,0.2)] transition-shadow duration-300' 
-                            : 'bg-cyber-dark border border-cyber-green/40 text-white hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-shadow duration-300'
-                        }`}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} max-w-3xl ${msg.role === 'user' ? 'ml-auto' : 'mr-auto'}`}
                       >
-                        <div className="whitespace-pre-line">{msg.content}</div>
-                        
-                        {msg.sources && (
-                          <div className="mt-3 pt-3 border-t border-white/10">
-                            <div className="flex items-center text-xs text-white/60 mb-2">
-                              <Link className="w-3 h-3 mr-1" />
-                              <span>Sources:</span>
-                            </div>
-                            <div className="space-y-1">
-                              {msg.sources.map((source, sIdx) => (
-                                <div key={sIdx} className="flex items-center text-xs">
-                                  <Shield className="w-3 h-3 mr-1 text-cyber-green" />
-                                  <a 
-                                    href={source.url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-cyber-cyan hover:underline truncate max-w-[260px] transition-colors duration-200"
-                                  >
-                                    {source.title}
-                                  </a>
-                                  <ExternalLink className="w-3 h-3 ml-1 text-white/40" />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        <div 
+                          className={`rounded-lg p-4 ${
+                            msg.role === 'user' 
+                              ? 'bg-cyber-magenta/20 border border-cyber-magenta/40 text-white hover:shadow-[0_0_10px_rgba(255,0,255,0.2)] transition-shadow duration-300' 
+                              : 'bg-cyber-dark border border-cyber-green/40 text-white hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-shadow duration-300'
+                          }`}
+                        >
+                          <div className="whitespace-pre-line">{msg.content}</div>
+                        </div>
                       </div>
+                      
+                      {/* Horizontal source scroller for this message */}
+                      {msg.sources && msg.sources.length > 0 && (
+                        <HorizontalSourceScroller
+                          sources={msg.sources}
+                          title="Sources for this response"
+                        />
+                      )}
                     </div>
                   ))
                 )}
@@ -582,6 +589,7 @@ const Hub = () => {
           </div>
         </div>
         
+        {/* Verified Sources Sidebar */}
         <Collapsible
           open={!isSourcesPanelCollapsed}
           onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
@@ -618,40 +626,11 @@ const Hub = () => {
               ) : activeSources.length > 0 ? (
                 <div className="space-y-4">
                   {activeSources.map((source, index) => (
-                    <div key={index} className="cyber-card p-3 hover:border-[#00ff9d]/40 transition-colors duration-300">
-                      <div className="flex items-start">
-                        <div className={`min-w-[24px] h-6 flex items-center justify-center rounded-full ${source.verified ? 'text-cyber-green' : 'text-cyber-magenta'} mr-2`}>
-                          <Shield className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-medium text-white mb-1">{source.title}</h3>
-                          <a 
-                            href={source.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-xs text-cyber-cyan hover:underline flex items-center hover:text-[#00ff9d] transition-colors duration-200"
-                          >
-                            <span className="truncate max-w-[180px]">{source.url}</span>
-                            <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
-                          </a>
-                          <div className="flex mt-2">
-                            <span className={`text-xs py-0.5 px-2 rounded-full ${source.verified ? 'bg-cyber-green/20 text-cyber-green' : 'bg-cyber-magenta/20 text-cyber-magenta'}`}>
-                              {source.verified ? 'Blockchain Verified' : 'Pending Verification'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-2 flex justify-end">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-6 w-6 hover:bg-cyber-green/10 transition-colors duration-200"
-                          onClick={() => toast({ title: "Source Saved", description: "Source bookmarked for future reference" })}
-                        >
-                          <BookmarkPlus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
+                    <SourceCard 
+                      key={`${source.link}-${index}`} 
+                      source={source}
+                      showPreview={true}
+                    />
                   ))}
                 </div>
               ) : (
@@ -668,7 +647,7 @@ const Hub = () => {
           isCollapsed={isSourcesPanelCollapsed}
           onClick={() => setIsSourcesPanelCollapsed(!isSourcesPanelCollapsed)}
           position="right"
-          className="md:hidden top-4"
+          className="md:block"
         />
       </div>
       

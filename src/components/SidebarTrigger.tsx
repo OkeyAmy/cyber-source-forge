@@ -22,13 +22,15 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
   return (
     <button 
       className={cn(
-        "fixed z-40 bg-cyber-dark/80 p-2 rounded-full shadow-lg border border-white/10 hover:border-[#00ff9d]/40 transition-all duration-300 hover:shadow-[0_0_10px_rgba(0,255,157,0.4)]",
+        "sidebar-trigger-visible z-40 flex items-center justify-center transition-all duration-300",
         position === 'left' 
-          ? 'left-4 md:left-6' 
-          : 'right-4 md:right-6',
-        isMobile ? 'bottom-16' : 'top-24', 
-        // Remove the conditional opacity to ensure visibility in all screen sizes
-        "opacity-90 hover:opacity-100",
+          ? isCollapsed ? 'left-4 md:left-6' : 'left-[16rem] md:left-[16.5rem]' 
+          : isCollapsed ? 'right-4 md:right-6' : 'right-[18rem] md:right-[18.5rem]',
+        isMobile ? (
+          isCollapsed ? 'fixed bottom-16' : 'hidden'
+        ) : (
+          'fixed top-24'
+        ),
         className
       )}
       onClick={onClick}

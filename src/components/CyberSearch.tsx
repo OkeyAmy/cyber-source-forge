@@ -97,7 +97,7 @@ const CyberSearch: React.FC = () => {
           
           <div className="flex flex-wrap justify-center gap-2 mt-6">
             <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">Blockchain Verified</div>
-            <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">Neural Analysis</div>
+            <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">AI Analysis</div>
             <div className="cyber-badge hover:border-[#00ff9d] hover:text-[#00ff9d] transition-colors duration-300">Decentralized</div>
           </div>
         </div>
