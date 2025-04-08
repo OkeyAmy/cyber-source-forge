@@ -1,11 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Send, Book, History, User, LogOut, PlusCircle, Trash2, Download, 
+  Book, History, User, LogOut, PlusCircle, Trash2, Download, 
   AlertTriangle, Search, Settings, ChevronLeft, ChevronRight, RefreshCw 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import CyberBackground from '@/components/CyberBackground';
 import { useToast } from '@/hooks/use-toast';
@@ -18,16 +17,17 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { useAnonymousMode } from '@/hooks/useAnonymousMode';
 import LoadingState from '@/components/LoadingState';
 import SidebarTrigger from '@/components/SidebarTrigger';
-import SourceCard, { SourceType } from '@/components/SourceCard';
+import { SourceType } from '@/components/SourceCard';
 import HorizontalSourceScroller from '@/components/HorizontalSourceScroller';
 import FocusAreaSelector from '@/components/FocusAreaSelector';
 import { api } from '@/services/api';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import ChatInput from '@/components/ChatInput';
+import ChatMessages from '@/components/ChatMessages';
 
 type FocusArea = 'All' | 'Research' | 'Social';
 
 const Hub = () => {
-  const [message, setMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -40,7 +40,7 @@ const Hub = () => {
     return localStorage.getItem('historySidebarCollapsed') === 'true';
   });
   const [apiError, setApiError] = useState<Error | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -65,10 +65,6 @@ const Hub = () => {
   useEffect(() => {
     localStorage.setItem('historySidebarCollapsed', String(isHistorySidebarCollapsed));
   }, [isHistorySidebarCollapsed]);
-  
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatHistory]);
   
   useEffect(() => {
     if (currentChat) {
@@ -124,8 +120,6 @@ const Hub = () => {
   };
   
   const processInitialQuery = async (query: string) => {
-    setMessage('');
-    
     try {
       setIsLoading(true);
       setApiError(null);
@@ -147,10 +141,14 @@ const Hub = () => {
       const updatedMessages: ChatMessage[] = [
         ...chatHistory,
         { 
+          role: 'user', 
+          content: query 
+        },
+        { 
           role: 'assistant', 
           content: response.content,
           sources: response.sources
-        } as ChatMessage
+        }
       ];
       
       setChatHistory(updatedMessages);
@@ -165,9 +163,7 @@ const Hub = () => {
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (message: string) => {
     if (!message.trim()) return;
     
     let currentChatSession = currentChat;
@@ -183,12 +179,9 @@ const Hub = () => {
       }
     }
     
-    const userMessage = message;
-    setMessage('');
-    
     const updatedMessages = [
       ...chatHistory,
-      { role: 'user', content: userMessage } as ChatMessage
+      { role: 'user', content: message } as ChatMessage
     ];
     
     setChatHistory(updatedMessages);
@@ -202,7 +195,7 @@ const Hub = () => {
     try {
       setApiError(null);
       const response = await api.processQuery(
-        userMessage, 
+        message, 
         focusArea, 
         currentChatSession?.id
       );
@@ -262,7 +255,6 @@ const Hub = () => {
       await refetchChatHistory();
       await loadChat(newChat.id);
       setChatHistory([]);
-      setMessage('');
       resetAnonymousMode();
     } catch (error) {
       handleApiError(error, "Failed to start a new chat");
@@ -337,12 +329,57 @@ const Hub = () => {
     setApiError(null);
   };
 
+  // Welcome screen when no messages
+  const EmptyState = () => (
+    <div className="h-full flex flex-col items-center justify-center text-center p-4 animate-fade-in">
+      <div className="mb-6 p-5 rounded-full bg-cyber-dark/80 border border-cyber-green animate-pulse-neon shadow-[0_0_15px_rgba(0,255,157,0.4)]">
+        <Search className="w-10 h-10 text-cyber-green" />
+      </div>
+      <h2 className="text-3xl font-bold cyber-text-gradient mb-3">Source Finder</h2>
+      <p className="text-white/60 max-w-md mb-6">
+        Your AI-powered research assistant with verified sources from across the web
+      </p>
+      
+      <FocusAreaSelector 
+        selected={focusArea}
+        onChange={setFocusArea}
+        className="mt-2 mb-6"
+      />
+      
+      <div className="w-24 h-24 relative my-4">
+        <div className="absolute inset-0 bg-cyber-green/20 rounded-full animate-ping"></div>
+        <div className="absolute inset-3 bg-cyber-green/30 rounded-full animate-ping" style={{ animationDelay: '300ms' }}></div>
+        <div className="absolute inset-6 bg-cyber-green/40 rounded-full animate-ping" style={{ animationDelay: '600ms' }}></div>
+        <div className="absolute inset-9 flex items-center justify-center w-6 h-6 bg-cyber-green text-black rounded-full">
+          <ChevronRight className="w-4 h-4" />
+        </div>
+      </div>
+      
+      <p className="text-white/40 text-sm mb-6">
+        Start by typing your research query below
+      </p>
+      
+      {isAnonymous && (
+        <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md max-w-md animate-fade-in">
+          <div className="flex items-center mb-1">
+            <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+            <h3 className="font-medium text-yellow-500">Anonymous Mode Active</h3>
+          </div>
+          <p className="text-sm text-white/70">
+            Your current session will not be saved to chat history. Toggle off anonymous mode in the sidebar to save your chats.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-cyber-dark text-white relative overflow-hidden">
       <CyberBackground />
       
-      <div className="flex justify-center w-full">
-        <div className="max-w-7xl w-full flex flex-grow relative z-10">
+      <main className="flex-grow w-full mx-auto" style={{ maxWidth: "1440px" }}>
+        <div className="flex h-screen relative z-10">
+          {/* Left Sidebar - Chat History */}
           <Collapsible 
             open={!isHistorySidebarCollapsed} 
             onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
@@ -494,15 +531,24 @@ const Hub = () => {
             className="md:block"
           />
           
-          <div className="flex-grow flex flex-col max-w-4xl mx-auto px-4">
-            <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-cyber-green">
-              <ErrorBoundary fallbackMessage="There was an error loading the chat">
+          {/* Main Chat Area */}
+          <div className="flex-grow flex flex-col max-w-4xl mx-auto">
+            <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green">
+              <ErrorBoundary 
+                fallbackMessage="There was an error connecting to the Source Finder API"
+                onReset={resetError}
+              >
                 {apiError ? (
-                  <div className="flex flex-col items-center justify-center h-40 my-8">
+                  <div className="flex flex-col items-center justify-center h-full py-10">
                     <div className="p-6 rounded-lg border border-red-300 bg-red-50/10 text-red-200 flex flex-col items-center text-center max-w-md">
-                      <AlertTriangle className="h-10 w-10 text-red-500 mb-4" />
-                      <h2 className="text-lg font-semibold mb-2">Error communicating with AI service</h2>
-                      <p className="text-sm mb-4">{apiError.message}</p>
+                      <div className="relative w-16 h-16 mb-4">
+                        <AlertTriangle className="h-16 w-16 text-red-500 animate-pulse" />
+                        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+                          <div className="h-5 w-5 bg-red-800 rounded-full"></div>
+                        </div>
+                      </div>
+                      <h2 className="text-xl font-semibold mb-3 cyber-text-gradient">API Connection Error</h2>
+                      <p className="text-sm mb-4 border-l-2 border-red-500 pl-3 text-left">{apiError.message}</p>
                       <Button 
                         variant="outline"
                         className="bg-transparent border-red-500 text-red-400 hover:bg-red-500/10"
@@ -514,125 +560,34 @@ const Hub = () => {
                     </div>
                   </div>
                 ) : chatHistory.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                    <div className="mb-4 p-4 rounded-full bg-cyber-dark/80 border border-cyber-green animate-pulse-neon shadow-[0_0_15px_rgba(0,255,157,0.4)]">
-                      <Search className="w-8 h-8 text-cyber-green" />
-                    </div>
-                    <h2 className="text-2xl font-bold cyber-text-gradient mb-2">Source Finder</h2>
-                    <p className="text-white/60 max-w-md mb-4">
-                      Your AI-powered research assistant with verified sources
-                    </p>
-                    
-                    <FocusAreaSelector 
-                      selected={focusArea}
-                      onChange={setFocusArea}
-                      className="mt-4"
-                    />
-                    
-                    <p className="text-white/40 text-sm">
-                      Start by typing your research query below
-                    </p>
-                    
-                    {isAnonymous && (
-                      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md max-w-md">
-                        <div className="flex items-center mb-1">
-                          <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
-                          <h3 className="font-medium text-yellow-500">Anonymous Mode Active</h3>
-                        </div>
-                        <p className="text-sm text-white/70">
-                          Your current session will not be saved to chat history. Toggle off anonymous mode in the sidebar to save your chats.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <EmptyState />
                 ) : (
-                  <div className="space-y-6">
-                    <FocusAreaSelector 
-                      selected={focusArea}
-                      onChange={setFocusArea}
+                  <div className="flex flex-col">
+                    <div className="p-3 backdrop-blur sticky top-0 z-10 border-b border-white/10">
+                      <FocusAreaSelector 
+                        selected={focusArea}
+                        onChange={setFocusArea}
+                      />
+                    </div>
+                    <ChatMessages 
+                      messages={chatHistory}
+                      isLoading={isLoading}
+                      onSourceClick={handleSourceClick}
                     />
-                    
-                    {isLoading && chatHistory.length === 0 ? (
-                      <LoadingState type="chat" count={3} />
-                    ) : (
-                      chatHistory.map((msg, index) => (
-                        <div key={index} className="space-y-2">
-                          <div 
-                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} max-w-3xl ${msg.role === 'user' ? 'ml-auto' : 'mr-auto'}`}
-                          >
-                            <div 
-                              className={`rounded-lg p-4 ${
-                                msg.role === 'user' 
-                                  ? 'bg-cyber-magenta/20 border border-cyber-magenta/40 text-white hover:shadow-[0_0_10px_rgba(255,0,255,0.2)] transition-shadow duration-300' 
-                                  : 'bg-cyber-dark border border-cyber-green/40 text-white hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-shadow duration-300'
-                              }`}
-                            >
-                              <div className="whitespace-pre-line">{msg.content}</div>
-                            </div>
-                          </div>
-                          
-                          {msg.sources && msg.sources.length > 0 && (
-                            <HorizontalSourceScroller
-                              sources={msg.sources}
-                              title="Sources for this response"
-                              onSourceClick={handleSourceClick}
-                            />
-                          )}
-                        </div>
-                      ))
-                    )}
-                    {isLoading && chatHistory.length > 0 && (
-                      <div className="flex justify-start max-w-3xl mr-auto">
-                        <div className="rounded-lg p-4 bg-cyber-dark border border-cyber-green/40 text-white animate-pulse">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse"></div>
-                            <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                            <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
-                            <span className="text-white/50 text-sm ml-1">Processing your query...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
                   </div>
                 )}
               </ErrorBoundary>
             </div>
             
-            <div className="p-4 border-t border-white/10">
-              <form onSubmit={handleSubmit} className="flex flex-col items-center">
-                <div className="relative w-full max-w-[80%] mx-auto">
-                  <Input
-                    type="text"
-                    placeholder="Ask your research question..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="cyber-input px-4 py-3 rounded-full focus:shadow-[0_0_15px_rgba(0,255,157,0.4)] transition-all duration-300 text-center"
-                    disabled={isLoading || !!apiError}
-                  />
-                  <Button 
-                    type="submit" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 cyber-button rounded-full p-2 h-auto w-auto"
-                    disabled={isLoading || !message.trim() || !!apiError}
-                  >
-                    {isLoading ? (
-                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <Send className="w-5 h-5" />
-                    )}
-                  </Button>
-                </div>
-                
-                {isAnonymous && (
-                  <div className="mt-2 text-xs text-yellow-500 flex items-center">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
-                    <span>Anonymous mode active - this chat won't be saved</span>
-                  </div>
-                )}
-              </form>
-            </div>
+            <ChatInput 
+              onSubmit={handleSubmit}
+              isLoading={isLoading}
+              isAnonymous={isAnonymous}
+              isDisabled={!!apiError}
+            />
           </div>
           
+          {/* Right Sidebar - Sources */}
           <Collapsible
             open={!isSourcesPanelCollapsed}
             onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
@@ -669,15 +624,47 @@ const Hub = () => {
                 ) : activeSources.length > 0 ? (
                   <div className="space-y-4">
                     {activeSources.map((source, index) => (
-                      <SourceCard 
+                      <div 
                         key={`${source.link}-${index}`} 
-                        source={source}
-                        showPreview={true}
-                      />
+                        className="cyber-card p-3 border border-white/10 hover:border-cyber-green/30 transition-all duration-300 cursor-pointer"
+                        onClick={() => handleSourceClick(source)}
+                      >
+                        <div className="flex items-center mb-2">
+                          <span className="text-xs py-0.5 px-2 rounded-full bg-white/10 text-white">
+                            {source.source}
+                          </span>
+                          {source.verified !== false && (
+                            <span className="ml-2 text-xs py-0.5 px-2 rounded-full bg-cyber-green/20 text-cyber-green">
+                              Verified
+                            </span>
+                          )}
+                        </div>
+                        
+                        <h3 className="text-sm font-medium text-white mb-1 line-clamp-2">{source.title}</h3>
+                        
+                        <a 
+                          href={source.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-xs text-cyber-cyan hover:underline flex items-center mb-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span className="truncate max-w-[180px]">{source.link}</span>
+                        </a>
+                        
+                        {source.preview && (
+                          <p className="text-xs text-white/70 line-clamp-3 mt-2 p-2 bg-black/20 rounded border border-white/5">
+                            {source.preview}
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center p-4 text-white/50">
+                    <div className="mx-auto w-16 h-16 rounded-full bg-cyber-dark/80 flex items-center justify-center mb-3">
+                      <Book className="w-8 h-8 text-white/30" />
+                    </div>
                     <p>No sources yet</p>
                     <p className="text-xs mt-2">Sources will appear here when your research query is processed</p>
                   </div>
@@ -693,7 +680,7 @@ const Hub = () => {
             className="md:block"
           />
         </div>
-      </div>
+      </main>
       
       <SettingsCenter open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </div>

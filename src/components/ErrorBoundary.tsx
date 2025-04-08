@@ -5,6 +5,7 @@ import ErrorFallback from './ErrorFallback';
 interface Props {
   children: ReactNode;
   fallbackMessage?: string;
+  onReset?: () => void;
 }
 
 interface State {
@@ -28,6 +29,9 @@ class ErrorBoundary extends Component<Props, State> {
 
   public resetError = () => {
     this.setState({ hasError: false, error: null });
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
   };
 
   public render() {

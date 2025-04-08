@@ -20,6 +20,7 @@ const API_BASE_URL = 'https://source-finder-hoic.onrender.com';
 // Helper function for API calls with improved error handling
 const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   try {
+    console.log(`Fetching from: ${API_BASE_URL}${endpoint}`);
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -65,11 +66,13 @@ export const api = {
     };
 
     try {
+      console.log('Processing query with payload:', JSON.stringify(requestBody));
       const data = await fetchApi('/api/process-query', {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });
 
+      console.log('Query response:', data);
       return {
         content: data.response.content,
         sources: data.response.sources
@@ -87,7 +90,9 @@ export const api = {
     }
     
     try {
+      console.log(`Getting sources for session: ${sessionId || 'current'}`);
       const data = await fetchApi(endpoint);
+      console.log('Sources response:', data);
       return data.sources;
     } catch (error) {
       console.error('Error getting sources:', error);
@@ -97,7 +102,10 @@ export const api = {
   
   getChats: async (): Promise<ChatSession[]> => {
     try {
+      console.log('Getting chats');
       const data = await fetchApi('/api/chats');
+      console.log('Chats response:', data);
+      
       return data.chats.map((chat: any) => ({
         id: chat.id || chat.session_id,
         title: chat.title,
@@ -121,11 +129,13 @@ export const api = {
     };
     
     try {
+      console.log(`Creating chat with query: ${query}, refresh: ${refresh}`);
       const data = await fetchApi(endpoint, {
         method: 'POST',
         body: JSON.stringify(requestBody),
       });
       
+      console.log('Create chat response:', data);
       return {
         id: data.session_id,
         title: data.title || 'New Chat',
@@ -140,7 +150,9 @@ export const api = {
   
   getChatDetails: async (sessionId: string): Promise<ChatSession> => {
     try {
+      console.log(`Getting chat details for session: ${sessionId}`);
       const data = await fetchApi(`/api/chats/${sessionId}`);
+      console.log('Chat details response:', data);
       
       return {
         id: sessionId,
@@ -156,7 +168,9 @@ export const api = {
   
   getCurrentSession: async (): Promise<{ session_id: string | null; title?: string; updated_at?: string }> => {
     try {
+      console.log('Getting current session');
       const data = await fetchApi('/api/current-session');
+      console.log('Current session response:', data);
       return {
         session_id: data.session_id,
         title: data.title,
@@ -170,9 +184,11 @@ export const api = {
   
   deleteChat: async (sessionId: string): Promise<boolean> => {
     try {
+      console.log(`Deleting chat: ${sessionId}`);
       await fetchApi(`/api/chats/${sessionId}`, {
         method: 'DELETE'
       });
+      console.log('Chat deleted successfully');
       return true;
     } catch (error) {
       console.error('Error deleting chat:', error);
