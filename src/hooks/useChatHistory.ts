@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useUserSettings } from './useUserSettings';
+import { SourceType } from '@/components/SourceCard';
 
 export type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
-  sources?: { url: string; title: string; verified?: boolean }[];
+  sources?: SourceType[];
 };
 
 export type ChatSession = {

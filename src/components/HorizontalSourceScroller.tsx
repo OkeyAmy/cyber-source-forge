@@ -63,7 +63,7 @@ const HorizontalSourceScroller: React.FC<HorizontalSourceScrollerProps> = ({
             key={index} 
             source={source}
             size="small"
-            onClick={() => onSourceClick?.(source)}
+            onClick={() => onSourceClick && onSourceClick(source)}
             className="flex-shrink-0 cursor-pointer"
           />
         ))}
