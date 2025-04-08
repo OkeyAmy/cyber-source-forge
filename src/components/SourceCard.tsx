@@ -12,7 +12,6 @@ export type SourceType = {
   images?: string[];
   logo?: string;
   verified?: boolean;
-  url?: string; // Added for compatibility with ChatMessage sources
 };
 
 interface SourceCardProps {
@@ -20,7 +19,6 @@ interface SourceCardProps {
   className?: string;
   size?: 'small' | 'medium' | 'large';
   showPreview?: boolean;
-  onClick?: () => void; // Added onClick handler
 }
 
 const sourceIcons: Record<string, string> = {
@@ -35,8 +33,7 @@ const SourceCard: React.FC<SourceCardProps> = ({
   source, 
   className,
   size = 'medium',
-  showPreview = false,
-  onClick
+  showPreview = false
 }) => {
   // Determine if source is verified (for now, randomly assign verification status)
   const isVerified = source.verified ?? Math.random() > 0.25;
@@ -53,7 +50,6 @@ const SourceCard: React.FC<SourceCardProps> = ({
         size === 'large' && "p-4 w-full",
         className
       )}
-      onClick={onClick}
     >
       {/* Source Badge */}
       <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
@@ -95,7 +91,6 @@ const SourceCard: React.FC<SourceCardProps> = ({
         target="_blank" 
         rel="noopener noreferrer" 
         className="text-xs text-cyber-cyan hover:underline flex items-center mb-2 hover:text-cyber-green transition-colors duration-200"
-        onClick={(e) => e.stopPropagation()} // Prevent triggering onClick of parent div
       >
         <span className="truncate max-w-[180px]">{source.link}</span>
         <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />

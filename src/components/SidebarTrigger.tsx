@@ -26,8 +26,11 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
         position === 'left' 
           ? isCollapsed ? 'left-4 md:left-6' : 'left-[16rem] md:left-[16.5rem]' 
           : isCollapsed ? 'right-4 md:right-6' : 'right-[18rem] md:right-[18.5rem]',
-        isCollapsed ? 'fixed top-24 shadow-[0_0_10px_rgba(0,255,157,0.3)]' : 'fixed top-24',
-        'bg-cyber-dark/80 hover:bg-cyber-dark p-2 rounded-full border border-cyber-green/30',
+        isMobile ? (
+          isCollapsed ? 'fixed bottom-16' : 'hidden'
+        ) : (
+          'fixed top-24'
+        ),
         className
       )}
       onClick={onClick}

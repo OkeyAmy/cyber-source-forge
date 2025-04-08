@@ -1,23 +1,23 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useUserSettings } from './useUserSettings';
-import { SourceType } from '@/components/SourceCard';
 
 export type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
-  sources?: SourceType[];
+  sources?: { url: string; title: string; verified?: boolean }[];
 };
 
 export type ChatSession = {
   id: string;
-  user_id?: string;
+  user_id: string;
   title: string;
   messages: ChatMessage[];
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export const useChatHistory = () => {
