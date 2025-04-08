@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Book, History, User, LogOut, BookmarkPlus, Settings, Link, Shield, ExternalLink, PlusCircle, Trash2, Download, Save, AlertTriangle, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Send, Book, History, User, LogOut, PlusCircle, Trash2, Download, AlertTriangle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -47,12 +46,12 @@ const Hub = () => {
     createNewChat, 
     updateChatMessages, 
     deleteChat,
-    loadChat
+    loadChat,
+    refetch: refetchChatHistory
   } = useChatHistory();
 
   const { isAnonymous, toggleAnonymousMode, resetAnonymousMode } = useAnonymousMode(currentChat?.id);
   
-  // Save sidebar collapse state to localStorage
   useEffect(() => {
     localStorage.setItem('sourcesPanelCollapsed', String(isSourcesPanelCollapsed));
   }, [isSourcesPanelCollapsed]);
@@ -68,8 +67,10 @@ const Hub = () => {
   useEffect(() => {
     if (currentChat) {
       setChatHistory(currentChat.messages || []);
+      loadSourcesForCurrentChat(currentChat.id);
     } else {
       setChatHistory([]);
+      setActiveSources([]);
     }
   }, [currentChat]);
   
@@ -78,73 +79,73 @@ const Hub = () => {
     if (initialQuery) {
       processInitialQuery(initialQuery);
       sessionStorage.removeItem('pendingQuery');
+    } else {
+      checkForCurrentSession();
     }
   }, []);
   
-  // Load initial sources
-  useEffect(() => {
-    const loadSources = async () => {
-      try {
-        const sources = await api.getSources();
-        setActiveSources(sources);
-      } catch (error) {
-        console.error('Failed to load sources:', error);
+  const loadSourcesForCurrentChat = async (chatId: string) => {
+    try {
+      if (!chatId) return;
+      const sources = await api.getSources(chatId);
+      setActiveSources(sources || []);
+    } catch (error) {
+      console.error('Failed to load sources for chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load sources for this chat.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const checkForCurrentSession = async () => {
+    try {
+      const currentSession = await api.getCurrentSession();
+      if (currentSession.session_id) {
+        await loadChat(currentSession.session_id);
       }
-    };
-    
-    loadSources();
-  }, []);
+    } catch (error) {
+      console.error('Error checking current session:', error);
+    }
+  };
   
   const processInitialQuery = async (query: string) => {
     setMessage('');
     
-    let currentChatSession = currentChat;
-    if (!currentChatSession) {
-      currentChatSession = await createNewChat();
-      if (!currentChatSession) return;
-    }
-    
-    const updatedMessages = [
-      ...(currentChatSession.messages || []),
-      { role: 'user', content: query } as ChatMessage
-    ];
-    
-    setChatHistory(updatedMessages);
-    
-    // Only update in database if not in anonymous mode
-    if (!isAnonymous) {
-      await updateChatMessages(currentChatSession.id, updatedMessages);
-    }
-    
-    setIsLoading(true);
-    
     try {
-      const response = await api.processQuery(query, focusArea);
+      setIsLoading(true);
       
-      setActiveSources(prevSources => {
-        // Add new sources to the active sources without duplicates
-        const existingLinks = new Set(prevSources.map(s => s.link));
-        const newSources = response.sources.filter(s => !existingLinks.has(s.link));
-        return [...prevSources, ...newSources];
-      });
+      const chatSession = await api.createChat(query);
       
-      const finalMessages = [
-        ...updatedMessages,
+      if (!chatSession || !chatSession.id) {
+        throw new Error('Failed to create chat session');
+      }
+      
+      await refetchChatHistory();
+      
+      await loadChat(chatSession.id);
+      
+      const response = await api.processQuery(query, focusArea, chatSession.id);
+      
+      setActiveSources(response.sources || []);
+      
+      const updatedMessages: ChatMessage[] = [
+        ...chatHistory,
         { 
           role: 'assistant', 
           content: response.content,
           sources: response.sources
-        } as ChatMessage
+        }
       ];
       
-      setChatHistory(finalMessages);
+      setChatHistory(updatedMessages);
       
-      // Only update in database if not in anonymous mode
       if (!isAnonymous) {
-        updateChatMessages(currentChatSession.id, finalMessages);
+        await updateChatMessages(chatSession.id, updatedMessages);
       }
     } catch (error) {
-      console.error('Error processing query:', error);
+      console.error('Error processing initial query:', error);
       toast({
         title: "Error",
         description: "Failed to process your query. Please try again.",
@@ -162,8 +163,19 @@ const Hub = () => {
     
     let currentChatSession = currentChat;
     if (!currentChatSession) {
-      currentChatSession = await createNewChat();
-      if (!currentChatSession) return;
+      try {
+        const newChat = await api.createChat(message, true);
+        await refetchChatHistory();
+        currentChatSession = newChat;
+      } catch (error) {
+        console.error('Error creating new chat:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create a new chat. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     const userMessage = message;
@@ -176,22 +188,26 @@ const Hub = () => {
     
     setChatHistory(updatedMessages);
     
-    // Only update in database if not in anonymous mode
-    if (!isAnonymous) {
+    if (!isAnonymous && currentChatSession) {
       await updateChatMessages(currentChatSession.id, updatedMessages);
     }
     
     setIsLoading(true);
     
     try {
-      const response = await api.processQuery(userMessage, focusArea);
+      const response = await api.processQuery(
+        userMessage, 
+        focusArea, 
+        currentChatSession?.id
+      );
       
-      setActiveSources(prevSources => {
-        // Add new sources to the active sources without duplicates
-        const existingLinks = new Set(prevSources.map(s => s.link));
-        const newSources = response.sources.filter(s => !existingLinks.has(s.link));
-        return [...prevSources, ...newSources];
-      });
+      if (response.sources && response.sources.length > 0) {
+        setActiveSources(prevSources => {
+          const existingLinks = new Set(prevSources.map(s => s.link));
+          const newSources = response.sources.filter(s => !existingLinks.has(s.link));
+          return [...prevSources, ...newSources];
+        });
+      }
       
       const finalMessages = [
         ...updatedMessages,
@@ -204,9 +220,8 @@ const Hub = () => {
       
       setChatHistory(finalMessages);
       
-      // Only update in database if not in anonymous mode
-      if (!isAnonymous) {
-        updateChatMessages(currentChatSession.id, finalMessages);
+      if (!isAnonymous && currentChatSession) {
+        await updateChatMessages(currentChatSession.id, finalMessages);
       }
     } catch (error) {
       console.error('Error processing query:', error);
@@ -244,10 +259,21 @@ const Hub = () => {
   };
 
   const startNewChat = async () => {
-    await createNewChat();
-    setChatHistory([]);
-    setMessage('');
-    resetAnonymousMode();
+    try {
+      const newChat = await api.createChat("", true);
+      await refetchChatHistory();
+      await loadChat(newChat.id);
+      setChatHistory([]);
+      setMessage('');
+      resetAnonymousMode();
+    } catch (error) {
+      console.error('Error starting new chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start a new chat. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
@@ -287,7 +313,6 @@ const Hub = () => {
 
   const clearChatHistory = async () => {
     try {
-      // Delete all chats
       for (const chat of savedChats) {
         await deleteChat(chat.id);
       }
@@ -297,7 +322,6 @@ const Hub = () => {
         description: "All chat history has been removed from the system.",
       });
       
-      // Start a new chat
       startNewChat();
     } catch (error) {
       console.error('Error clearing chat history:', error);
@@ -309,12 +333,17 @@ const Hub = () => {
     }
   };
 
+  const handleSourceClick = (source: SourceType) => {
+    if (source.link) {
+      window.open(source.link, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-cyber-dark text-white relative overflow-hidden">
       <CyberBackground />
       
       <div className="flex flex-grow relative z-10">
-        {/* Query History Sidebar */}
         <Collapsible 
           open={!isHistorySidebarCollapsed} 
           onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
@@ -466,7 +495,6 @@ const Hub = () => {
           className="md:block"
         />
         
-        {/* Main Chat Content */}
         <div className="flex-grow flex flex-col">
           <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-cyber-green">
             {chatHistory.length === 0 ? (
@@ -503,7 +531,6 @@ const Hub = () => {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Focus Area Selector when chat has content */}
                 <FocusAreaSelector 
                   selected={focusArea}
                   onChange={setFocusArea}
@@ -528,11 +555,11 @@ const Hub = () => {
                         </div>
                       </div>
                       
-                      {/* Horizontal source scroller for this message */}
                       {msg.sources && msg.sources.length > 0 && (
                         <HorizontalSourceScroller
                           sources={msg.sources}
                           title="Sources for this response"
+                          onSourceClick={handleSourceClick}
                         />
                       )}
                     </div>
@@ -589,7 +616,6 @@ const Hub = () => {
           </div>
         </div>
         
-        {/* Verified Sources Sidebar */}
         <Collapsible
           open={!isSourcesPanelCollapsed}
           onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
