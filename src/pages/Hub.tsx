@@ -1,5 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Book, History, User, LogOut, PlusCircle, Trash2, Download, AlertTriangle, Search, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Send, Book, History, User, LogOut, PlusCircle, Trash2, Download, 
+  AlertTriangle, Search, Settings, ChevronLeft, ChevronRight, RefreshCw 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -18,6 +22,7 @@ import SourceCard, { SourceType } from '@/components/SourceCard';
 import HorizontalSourceScroller from '@/components/HorizontalSourceScroller';
 import FocusAreaSelector from '@/components/FocusAreaSelector';
 import { api } from '@/services/api';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 type FocusArea = 'All' | 'Research' | 'Social';
 
@@ -34,6 +39,7 @@ const Hub = () => {
   const [isHistorySidebarCollapsed, setIsHistorySidebarCollapsed] = useState(() => {
     return localStorage.getItem('historySidebarCollapsed') === 'true';
   });
+  const [apiError, setApiError] = useState<Error | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -84,29 +90,36 @@ const Hub = () => {
     }
   }, []);
   
+  const handleApiError = (error: any, customMessage: string) => {
+    console.error(customMessage, error);
+    setApiError(error instanceof Error ? error : new Error(customMessage));
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : customMessage,
+      variant: "destructive",
+    });
+  };
+  
   const loadSourcesForCurrentChat = async (chatId: string) => {
     try {
       if (!chatId) return;
+      setApiError(null);
       const sources = await api.getSources(chatId);
       setActiveSources(sources || []);
     } catch (error) {
-      console.error('Failed to load sources for chat:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load sources for this chat.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to load sources for this chat");
     }
   };
   
   const checkForCurrentSession = async () => {
     try {
+      setApiError(null);
       const currentSession = await api.getCurrentSession();
       if (currentSession.session_id) {
         await loadChat(currentSession.session_id);
       }
     } catch (error) {
-      console.error('Error checking current session:', error);
+      handleApiError(error, "Error checking current session");
     }
   };
   
@@ -115,6 +128,7 @@ const Hub = () => {
     
     try {
       setIsLoading(true);
+      setApiError(null);
       
       const chatSession = await api.createChat(query);
       
@@ -145,12 +159,7 @@ const Hub = () => {
         await updateChatMessages(chatSession.id, updatedMessages);
       }
     } catch (error) {
-      console.error('Error processing initial query:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process your query. Please try again.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to process your query");
     } finally {
       setIsLoading(false);
     }
@@ -164,16 +173,12 @@ const Hub = () => {
     let currentChatSession = currentChat;
     if (!currentChatSession) {
       try {
+        setApiError(null);
         const newChat = await api.createChat(message, true);
         await refetchChatHistory();
         currentChatSession = newChat;
       } catch (error) {
-        console.error('Error creating new chat:', error);
-        toast({
-          title: "Error",
-          description: "Failed to create a new chat. Please try again.",
-          variant: "destructive",
-        });
+        handleApiError(error, "Failed to create a new chat");
         return;
       }
     }
@@ -195,6 +200,7 @@ const Hub = () => {
     setIsLoading(true);
     
     try {
+      setApiError(null);
       const response = await api.processQuery(
         userMessage, 
         focusArea, 
@@ -224,12 +230,7 @@ const Hub = () => {
         await updateChatMessages(currentChatSession.id, finalMessages);
       }
     } catch (error) {
-      console.error('Error processing query:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process your query. Please try again.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to process your query");
     } finally {
       setIsLoading(false);
     }
@@ -242,15 +243,11 @@ const Hub = () => {
     });
     
     try {
+      setApiError(null);
       await signOut();
       navigate('/');
     } catch (error) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error",
-        description: "Failed to log out. Please try again.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to log out");
     }
   };
   
@@ -260,6 +257,7 @@ const Hub = () => {
 
   const startNewChat = async () => {
     try {
+      setApiError(null);
       const newChat = await api.createChat("", true);
       await refetchChatHistory();
       await loadChat(newChat.id);
@@ -267,22 +265,27 @@ const Hub = () => {
       setMessage('');
       resetAnonymousMode();
     } catch (error) {
-      console.error('Error starting new chat:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start a new chat. Please try again.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to start a new chat");
     }
   };
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
-    await deleteChat(chatId);
+    try {
+      setApiError(null);
+      await deleteChat(chatId);
+    } catch (error) {
+      handleApiError(error, "Failed to delete chat");
+    }
   };
 
   const handleChatSelect = async (chatId: string) => {
-    await loadChat(chatId);
+    try {
+      setApiError(null);
+      await loadChat(chatId);
+    } catch (error) {
+      handleApiError(error, "Failed to load chat");
+    }
   };
 
   const exportChatHistory = () => {
@@ -302,17 +305,13 @@ const Hub = () => {
         description: "Your chat history has been exported successfully.",
       });
     } catch (error) {
-      console.error('Error exporting chat history:', error);
-      toast({
-        title: "Export failed",
-        description: "Failed to export chat history. Please try again.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to export chat history");
     }
   };
 
   const clearChatHistory = async () => {
     try {
+      setApiError(null);
       for (const chat of savedChats) {
         await deleteChat(chat.id);
       }
@@ -324,12 +323,7 @@ const Hub = () => {
       
       startNewChat();
     } catch (error) {
-      console.error('Error clearing chat history:', error);
-      toast({
-        title: "Operation failed",
-        description: "Failed to clear chat history. Please try again.",
-        variant: "destructive",
-      });
+      handleApiError(error, "Failed to clear chat history");
     }
   };
 
@@ -339,342 +333,366 @@ const Hub = () => {
     }
   };
 
+  const resetError = () => {
+    setApiError(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-cyber-dark text-white relative overflow-hidden">
       <CyberBackground />
       
-      <div className="flex flex-grow relative z-10">
-        <Collapsible 
-          open={!isHistorySidebarCollapsed} 
-          onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
-          className="fixed md:relative inset-y-0 left-0 transition-all duration-300 ease-in-out md:w-64 bg-cyber-dark border-r border-white/10 flex flex-col z-30 shadow-[0_0_15px_rgba(0,255,157,0.2)]"
-          style={{
-            transform: isHistorySidebarCollapsed ? 'translateX(-100%)' : 'translateX(0)',
-            width: isHistorySidebarCollapsed ? '0' : '16rem',
-            opacity: isHistorySidebarCollapsed ? 0 : 1,
-            visibility: isHistorySidebarCollapsed ? 'hidden' : 'visible',
-            overflow: 'hidden'
-          }}
-        >
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center">
-              <History className="text-cyber-green mr-2" />
-              <h2 className="text-xl font-bold">Query History</h2>
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 md:flex hidden hover:bg-cyber-green/10 transition-colors duration-300">
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          
-          <CollapsibleContent forceMount className="flex-grow flex flex-col" 
-            style={{ 
-              display: isHistorySidebarCollapsed ? 'none' : 'flex',
-              visibility: isHistorySidebarCollapsed ? 'hidden' : 'visible' 
+      <div className="flex justify-center w-full">
+        <div className="max-w-7xl w-full flex flex-grow relative z-10">
+          <Collapsible 
+            open={!isHistorySidebarCollapsed} 
+            onOpenChange={(open) => setIsHistorySidebarCollapsed(!open)}
+            className="fixed md:relative inset-y-0 left-0 transition-all duration-300 ease-in-out md:w-64 bg-cyber-dark border-r border-white/10 flex flex-col z-30 shadow-[0_0_15px_rgba(0,255,157,0.2)]"
+            style={{
+              transform: isHistorySidebarCollapsed ? 'translateX(-100%)' : 'translateX(0)',
+              width: isHistorySidebarCollapsed ? '0' : '16rem',
+              opacity: isHistorySidebarCollapsed ? 0 : 1,
+              visibility: isHistorySidebarCollapsed ? 'hidden' : 'visible',
+              overflow: 'hidden'
             }}
           >
-            <div className="p-2">
-              <Button 
-                variant="outline" 
-                className="w-full mb-3 bg-cyber-green/10 hover:bg-cyber-green/20 text-cyber-green border-cyber-green/30"
-                onClick={startNewChat}
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                New Chat
-              </Button>
-              
-              <div className="flex items-center justify-between mb-3 px-2">
-                <div className="flex items-center">
-                  <Switch
-                    checked={isAnonymous}
-                    onCheckedChange={toggleAnonymousMode}
-                    id="anonymous-mode"
-                    className="data-[state=checked]:bg-[#00ff9d]"
-                  />
-                  <label
-                    htmlFor="anonymous-mode"
-                    className="ml-2 text-sm font-medium text-white/80 cursor-pointer"
-                  >
-                    Anonymous Mode
-                  </label>
-                </div>
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center">
+                <History className="text-cyber-green mr-2" />
+                <h2 className="text-xl font-bold">Query History</h2>
               </div>
-              
-              {isAnonymous && (
-                <div className="mb-3 px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex items-start">
-                  <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
-                  <p className="text-xs text-white/70">
-                    Anonymous mode is ON. Current chat will not be saved.
-                  </p>
-                </div>
-              )}
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 md:flex hidden hover:bg-cyber-green/10 transition-colors duration-300">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
             </div>
             
-            <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-2">
-              {isLoading && savedChats.length === 0 ? (
-                <LoadingState type="skeleton" count={5} />
-              ) : (
-                <>
-                  {savedChats.map((chat) => (
-                    <div 
-                      key={chat.id} 
-                      className={`mb-2 p-2 hover:bg-white/5 rounded cursor-pointer flex items-center justify-between transition-colors duration-200 ${currentChat?.id === chat.id ? 'bg-white/10 border-l-2 border-[#00ff9d]' : ''}`}
-                      onClick={() => handleChatSelect(chat.id)}
+            <CollapsibleContent forceMount className="flex-grow flex flex-col" 
+              style={{ 
+                display: isHistorySidebarCollapsed ? 'none' : 'flex',
+                visibility: isHistorySidebarCollapsed ? 'hidden' : 'visible' 
+              }}
+            >
+              <div className="p-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full mb-3 bg-cyber-green/10 hover:bg-cyber-green/20 text-cyber-green border-cyber-green/30"
+                  onClick={startNewChat}
+                >
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  New Chat
+                </Button>
+                
+                <div className="flex items-center justify-between mb-3 px-2">
+                  <div className="flex items-center">
+                    <Switch
+                      checked={isAnonymous}
+                      onCheckedChange={toggleAnonymousMode}
+                      id="anonymous-mode"
+                      className="data-[state=checked]:bg-[#00ff9d]"
+                    />
+                    <label
+                      htmlFor="anonymous-mode"
+                      className="ml-2 text-sm font-medium text-white/80 cursor-pointer"
                     >
-                      <p className="text-sm text-white/80 truncate">
-                        {chat.title}
-                      </p>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 opacity-50 hover:opacity-100 hover:bg-red-500/10 transition-all duration-200"
-                        onClick={(e) => handleDeleteChat(e, chat.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {savedChats.length === 0 && !isLoading && (
-                    <div className="text-center p-4 text-white/50">
-                      <p>No history yet</p>
-                      <p className="text-xs mt-2">Your research queries will appear here</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-            
-            <div className="p-4 border-t border-white/10">
-              <div className="flex flex-col space-y-2 mb-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start text-xs hover:bg-white/5 hover:text-[#00ff9d] transition-colors duration-300"
-                  onClick={exportChatHistory}
-                >
-                  <Download className="h-3 w-3 mr-2" />
-                  Export Chat History
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full justify-start text-xs hover:bg-red-500/10 hover:text-red-400 transition-colors duration-300"
-                  onClick={clearChatHistory}
-                >
-                  <Trash2 className="h-3 w-3 mr-2" />
-                  Clear All Chat History
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-cyber-green flex items-center justify-center mr-2">
-                    <User className="w-4 h-4 text-cyber-dark" />
+                      Anonymous Mode
+                    </label>
                   </div>
-                  <span className="text-sm">{settings?.display_name || 'Researcher'}</span>
                 </div>
-                <div className="flex">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 transition-colors duration-200" onClick={openSettings}>
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 transition-colors duration-200" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-
-        <SidebarTrigger
-          isCollapsed={isHistorySidebarCollapsed}
-          onClick={() => setIsHistorySidebarCollapsed(!isHistorySidebarCollapsed)}
-          position="left"
-          className="md:block"
-        />
-        
-        <div className="flex-grow flex flex-col">
-          <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-cyber-green">
-            {chatHistory.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                <div className="mb-4 p-4 rounded-full bg-cyber-dark/80 border border-cyber-green animate-pulse-neon shadow-[0_0_15px_rgba(0,255,157,0.4)]">
-                  <Search className="w-8 h-8 text-cyber-green" />
-                </div>
-                <h2 className="text-2xl font-bold cyber-text-gradient mb-2">Source Finder</h2>
-                <p className="text-white/60 max-w-md mb-4">
-                  Your AI-powered research assistant with verified sources
-                </p>
-                
-                <FocusAreaSelector 
-                  selected={focusArea}
-                  onChange={setFocusArea}
-                  className="mt-4"
-                />
-                
-                <p className="text-white/40 text-sm">
-                  Start by typing your research query below
-                </p>
                 
                 {isAnonymous && (
-                  <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md max-w-md">
-                    <div className="flex items-center mb-1">
-                      <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
-                      <h3 className="font-medium text-yellow-500">Anonymous Mode Active</h3>
-                    </div>
-                    <p className="text-sm text-white/70">
-                      Your current session will not be saved to chat history. Toggle off anonymous mode in the sidebar to save your chats.
+                  <div className="mb-3 px-2 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md flex items-start">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <p className="text-xs text-white/70">
+                      Anonymous mode is ON. Current chat will not be saved.
                     </p>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="space-y-6">
-                <FocusAreaSelector 
-                  selected={focusArea}
-                  onChange={setFocusArea}
-                />
-                
-                {isLoading && chatHistory.length === 0 ? (
-                  <LoadingState type="chat" count={3} />
+              
+              <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-2">
+                {isLoading && savedChats.length === 0 ? (
+                  <LoadingState type="skeleton" count={5} />
                 ) : (
-                  chatHistory.map((msg, index) => (
-                    <div key={index} className="space-y-2">
+                  <>
+                    {savedChats.map((chat) => (
                       <div 
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} max-w-3xl ${msg.role === 'user' ? 'ml-auto' : 'mr-auto'}`}
+                        key={chat.id} 
+                        className={`mb-2 p-2 hover:bg-white/5 rounded cursor-pointer flex items-center justify-between transition-colors duration-200 ${currentChat?.id === chat.id ? 'bg-white/10 border-l-2 border-[#00ff9d]' : ''}`}
+                        onClick={() => handleChatSelect(chat.id)}
                       >
-                        <div 
-                          className={`rounded-lg p-4 ${
-                            msg.role === 'user' 
-                              ? 'bg-cyber-magenta/20 border border-cyber-magenta/40 text-white hover:shadow-[0_0_10px_rgba(255,0,255,0.2)] transition-shadow duration-300' 
-                              : 'bg-cyber-dark border border-cyber-green/40 text-white hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-shadow duration-300'
-                          }`}
+                        <p className="text-sm text-white/80 truncate">
+                          {chat.title}
+                        </p>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 opacity-50 hover:opacity-100 hover:bg-red-500/10 transition-all duration-200"
+                          onClick={(e) => handleDeleteChat(e, chat.id)}
                         >
-                          <div className="whitespace-pre-line">{msg.content}</div>
-                        </div>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
-                      
-                      {msg.sources && msg.sources.length > 0 && (
-                        <HorizontalSourceScroller
-                          sources={msg.sources}
-                          title="Sources for this response"
-                          onSourceClick={handleSourceClick}
-                        />
-                      )}
-                    </div>
-                  ))
-                )}
-                {isLoading && chatHistory.length > 0 && (
-                  <div className="flex justify-start max-w-3xl mr-auto">
-                    <div className="rounded-lg p-4 bg-cyber-dark border border-cyber-green/40 text-white animate-pulse">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse"></div>
-                        <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                        <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
-                        <span className="text-white/50 text-sm ml-1">Processing your query...</span>
+                    ))}
+                    {savedChats.length === 0 && !isLoading && (
+                      <div className="text-center p-4 text-white/50">
+                        <p>No history yet</p>
+                        <p className="text-xs mt-2">Your research queries will appear here</p>
                       </div>
-                    </div>
-                  </div>
+                    )}
+                  </>
                 )}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-          </div>
-          
-          <div className="p-4 border-t border-white/10">
-            <form onSubmit={handleSubmit} className="flex flex-col items-center">
-              <div className="relative w-full max-w-[80%] mx-auto">
-                <Input
-                  type="text"
-                  placeholder="Ask your research question..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="cyber-input px-4 py-3 rounded-full focus:shadow-[0_0_15px_rgba(0,255,157,0.4)] transition-all duration-300 text-center"
-                  disabled={isLoading}
-                />
-                <Button 
-                  type="submit" 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 cyber-button rounded-full p-2 h-auto w-auto"
-                  disabled={isLoading || !message.trim()}
-                >
-                  {isLoading ? (
-                    <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </Button>
               </div>
               
-              {isAnonymous && (
-                <div className="mt-2 text-xs text-yellow-500 flex items-center">
-                  <AlertTriangle className="w-3 h-3 mr-1" />
-                  <span>Anonymous mode active - this chat won't be saved</span>
+              <div className="p-4 border-t border-white/10">
+                <div className="flex flex-col space-y-2 mb-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-xs hover:bg-white/5 hover:text-[#00ff9d] transition-colors duration-300"
+                    onClick={exportChatHistory}
+                  >
+                    <Download className="h-3 w-3 mr-2" />
+                    Export Chat History
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full justify-start text-xs hover:bg-red-500/10 hover:text-red-400 transition-colors duration-300"
+                    onClick={clearChatHistory}
+                  >
+                    <Trash2 className="h-3 w-3 mr-2" />
+                    Clear All Chat History
+                  </Button>
                 </div>
-              )}
-            </form>
-          </div>
-        </div>
-        
-        <Collapsible
-          open={!isSourcesPanelCollapsed}
-          onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
-          className="fixed md:relative inset-y-0 right-0 transition-all duration-300 ease-in-out md:w-72 bg-cyber-dark border-l border-white/10 flex flex-col z-30 shadow-[0_0_15px_rgba(0,255,157,0.2)]"
-          style={{
-            transform: isSourcesPanelCollapsed ? 'translateX(100%)' : 'translateX(0)',
-            width: isSourcesPanelCollapsed ? '0' : '18rem',
-            opacity: isSourcesPanelCollapsed ? 0 : 1,
-            visibility: isSourcesPanelCollapsed ? 'hidden' : 'visible',
-            overflow: 'hidden'
-          }}
-        >
-          <div className="p-4 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center">
-              <Book className="text-cyber-green mr-2" />
-              <h2 className="text-xl font-bold">Verified Sources</h2>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-cyber-green flex items-center justify-center mr-2">
+                      <User className="w-4 h-4 text-cyber-dark" />
+                    </div>
+                    <span className="text-sm">{settings?.display_name || 'Researcher'}</span>
+                  </div>
+                  <div className="flex">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 transition-colors duration-200" onClick={openSettings}>
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5 transition-colors duration-200" onClick={handleLogout}>
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          <SidebarTrigger
+            isCollapsed={isHistorySidebarCollapsed}
+            onClick={() => setIsHistorySidebarCollapsed(!isHistorySidebarCollapsed)}
+            position="left"
+            className="md:block"
+          />
+          
+          <div className="flex-grow flex flex-col max-w-4xl mx-auto px-4">
+            <div className="flex-grow overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-cyber-green">
+              <ErrorBoundary fallbackMessage="There was an error loading the chat">
+                {apiError ? (
+                  <div className="flex flex-col items-center justify-center h-40 my-8">
+                    <div className="p-6 rounded-lg border border-red-300 bg-red-50/10 text-red-200 flex flex-col items-center text-center max-w-md">
+                      <AlertTriangle className="h-10 w-10 text-red-500 mb-4" />
+                      <h2 className="text-lg font-semibold mb-2">Error communicating with AI service</h2>
+                      <p className="text-sm mb-4">{apiError.message}</p>
+                      <Button 
+                        variant="outline"
+                        className="bg-transparent border-red-500 text-red-400 hover:bg-red-500/10"
+                        onClick={resetError}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Retry Connection
+                      </Button>
+                    </div>
+                  </div>
+                ) : chatHistory.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                    <div className="mb-4 p-4 rounded-full bg-cyber-dark/80 border border-cyber-green animate-pulse-neon shadow-[0_0_15px_rgba(0,255,157,0.4)]">
+                      <Search className="w-8 h-8 text-cyber-green" />
+                    </div>
+                    <h2 className="text-2xl font-bold cyber-text-gradient mb-2">Source Finder</h2>
+                    <p className="text-white/60 max-w-md mb-4">
+                      Your AI-powered research assistant with verified sources
+                    </p>
+                    
+                    <FocusAreaSelector 
+                      selected={focusArea}
+                      onChange={setFocusArea}
+                      className="mt-4"
+                    />
+                    
+                    <p className="text-white/40 text-sm">
+                      Start by typing your research query below
+                    </p>
+                    
+                    {isAnonymous && (
+                      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md max-w-md">
+                        <div className="flex items-center mb-1">
+                          <AlertTriangle className="h-4 w-4 text-yellow-500 mr-2" />
+                          <h3 className="font-medium text-yellow-500">Anonymous Mode Active</h3>
+                        </div>
+                        <p className="text-sm text-white/70">
+                          Your current session will not be saved to chat history. Toggle off anonymous mode in the sidebar to save your chats.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <FocusAreaSelector 
+                      selected={focusArea}
+                      onChange={setFocusArea}
+                    />
+                    
+                    {isLoading && chatHistory.length === 0 ? (
+                      <LoadingState type="chat" count={3} />
+                    ) : (
+                      chatHistory.map((msg, index) => (
+                        <div key={index} className="space-y-2">
+                          <div 
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} max-w-3xl ${msg.role === 'user' ? 'ml-auto' : 'mr-auto'}`}
+                          >
+                            <div 
+                              className={`rounded-lg p-4 ${
+                                msg.role === 'user' 
+                                  ? 'bg-cyber-magenta/20 border border-cyber-magenta/40 text-white hover:shadow-[0_0_10px_rgba(255,0,255,0.2)] transition-shadow duration-300' 
+                                  : 'bg-cyber-dark border border-cyber-green/40 text-white hover:shadow-[0_0_10px_rgba(0,255,157,0.2)] transition-shadow duration-300'
+                              }`}
+                            >
+                              <div className="whitespace-pre-line">{msg.content}</div>
+                            </div>
+                          </div>
+                          
+                          {msg.sources && msg.sources.length > 0 && (
+                            <HorizontalSourceScroller
+                              sources={msg.sources}
+                              title="Sources for this response"
+                              onSourceClick={handleSourceClick}
+                            />
+                          )}
+                        </div>
+                      ))
+                    )}
+                    {isLoading && chatHistory.length > 0 && (
+                      <div className="flex justify-start max-w-3xl mr-auto">
+                        <div className="rounded-lg p-4 bg-cyber-dark border border-cyber-green/40 text-white animate-pulse">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse"></div>
+                            <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse" style={{ animationDelay: '300ms' }}></div>
+                            <div className="w-3 h-3 bg-cyber-green rounded-full animate-pulse" style={{ animationDelay: '600ms' }}></div>
+                            <span className="text-white/50 text-sm ml-1">Processing your query...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </ErrorBoundary>
             </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 md:flex hidden hover:bg-cyber-green/10 transition-colors duration-300">
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CollapsibleTrigger>
+            
+            <div className="p-4 border-t border-white/10">
+              <form onSubmit={handleSubmit} className="flex flex-col items-center">
+                <div className="relative w-full max-w-[80%] mx-auto">
+                  <Input
+                    type="text"
+                    placeholder="Ask your research question..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="cyber-input px-4 py-3 rounded-full focus:shadow-[0_0_15px_rgba(0,255,157,0.4)] transition-all duration-300 text-center"
+                    disabled={isLoading || !!apiError}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 cyber-button rounded-full p-2 h-auto w-auto"
+                    disabled={isLoading || !message.trim() || !!apiError}
+                  >
+                    {isLoading ? (
+                      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                  </Button>
+                </div>
+                
+                {isAnonymous && (
+                  <div className="mt-2 text-xs text-yellow-500 flex items-center">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    <span>Anonymous mode active - this chat won't be saved</span>
+                  </div>
+                )}
+              </form>
+            </div>
           </div>
           
-          <CollapsibleContent forceMount className="flex-grow" 
-            style={{ 
-              display: isSourcesPanelCollapsed ? 'none' : 'block',
-              visibility: isSourcesPanelCollapsed ? 'hidden' : 'visible' 
+          <Collapsible
+            open={!isSourcesPanelCollapsed}
+            onOpenChange={(open) => setIsSourcesPanelCollapsed(!open)}
+            className="fixed md:relative inset-y-0 right-0 transition-all duration-300 ease-in-out md:w-72 bg-cyber-dark border-l border-white/10 flex flex-col z-30 shadow-[0_0_15px_rgba(0,255,157,0.2)]"
+            style={{
+              transform: isSourcesPanelCollapsed ? 'translateX(100%)' : 'translateX(0)',
+              width: isSourcesPanelCollapsed ? '0' : '18rem',
+              opacity: isSourcesPanelCollapsed ? 0 : 1,
+              visibility: isSourcesPanelCollapsed ? 'hidden' : 'visible',
+              overflow: 'hidden'
             }}
           >
-            <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-4">
-              {isLoading && activeSources.length === 0 ? (
-                <LoadingState type="sources" count={3} />
-              ) : activeSources.length > 0 ? (
-                <div className="space-y-4">
-                  {activeSources.map((source, index) => (
-                    <SourceCard 
-                      key={`${source.link}-${index}`} 
-                      source={source}
-                      showPreview={true}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center p-4 text-white/50">
-                  <p>No sources yet</p>
-                  <p className="text-xs mt-2">Sources will appear here when your research query is processed</p>
-                </div>
-              )}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center">
+                <Book className="text-cyber-green mr-2" />
+                <h2 className="text-xl font-bold">Verified Sources</h2>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 md:flex hidden hover:bg-cyber-green/10 transition-colors duration-300">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </CollapsibleTrigger>
             </div>
-          </CollapsibleContent>
-        </Collapsible>
-        
-        <SidebarTrigger
-          isCollapsed={isSourcesPanelCollapsed}
-          onClick={() => setIsSourcesPanelCollapsed(!isSourcesPanelCollapsed)}
-          position="right"
-          className="md:block"
-        />
+            
+            <CollapsibleContent forceMount className="flex-grow" 
+              style={{ 
+                display: isSourcesPanelCollapsed ? 'none' : 'block',
+                visibility: isSourcesPanelCollapsed ? 'hidden' : 'visible' 
+              }}
+            >
+              <div className="flex-grow overflow-y-auto scrollbar-thin scrollbar-thumb-cyber-green p-4">
+                {isLoading && activeSources.length === 0 ? (
+                  <LoadingState type="sources" count={3} />
+                ) : activeSources.length > 0 ? (
+                  <div className="space-y-4">
+                    {activeSources.map((source, index) => (
+                      <SourceCard 
+                        key={`${source.link}-${index}`} 
+                        source={source}
+                        showPreview={true}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center p-4 text-white/50">
+                    <p>No sources yet</p>
+                    <p className="text-xs mt-2">Sources will appear here when your research query is processed</p>
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+          
+          <SidebarTrigger
+            isCollapsed={isSourcesPanelCollapsed}
+            onClick={() => setIsSourcesPanelCollapsed(!isSourcesPanelCollapsed)}
+            position="right"
+            className="md:block"
+          />
+        </div>
       </div>
       
       <SettingsCenter open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
