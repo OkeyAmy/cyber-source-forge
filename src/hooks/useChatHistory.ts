@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,11 +13,11 @@ export type ChatMessage = {
 
 export type ChatSession = {
   id: string;
-  user_id: string;
+  user_id?: string;
   title: string;
   messages: ChatMessage[];
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export const useChatHistory = () => {
