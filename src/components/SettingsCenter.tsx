@@ -1,7 +1,7 @@
 
 import React, { useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { User, Shield, X, Save, DownloadCloud, Trash2 } from 'lucide-react';
+import { User, Shield, X, Save, DownloadCloud, Trash2, FileText, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
@@ -85,11 +85,15 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <SheetContent className="w-full sm:max-w-md bg-cyber-dark border-l border-white/10">
-        <SheetHeader className="border-b border-white/10 pb-4">
+      <SheetContent className="w-full sm:max-w-md bg-cyber-dark border-l border-cyber-green/20 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+        <SheetHeader className="border-b border-cyber-green/20 pb-4">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-xl font-bold cyber-text-gradient">Settings</SheetTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <SheetTitle className="text-xl font-bold">
+              <span className="text-cyber-green">SOURCE</span>
+              <span className="text-white">FINDER</span>
+              <span className="text-white/60 text-sm ml-2">Settings</span>
+            </SheetTitle>
+            <Button variant="ghost" size="icon" onClick={onClose} className="hover:text-cyber-green hover:bg-cyber-green/10 transition-colors">
               <X className="h-5 w-5 text-white" />
             </Button>
           </div>
@@ -97,26 +101,29 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
         
         <div className="py-6">
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid grid-cols-2 mb-6 bg-cyber-dark/50 border border-white/10">
+            <TabsList className="grid grid-cols-2 mb-6 bg-cyber-dark/70 border border-cyber-green/20">
               <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-cyber-green/20 data-[state=active]:text-cyber-green">
                 <User className="h-4 w-4" />
-                <span>Profile & Wallet</span>
+                <span>Profile</span>
               </TabsTrigger>
               <TabsTrigger value="privacy" className="flex items-center gap-2 data-[state=active]:bg-cyber-green/20 data-[state=active]:text-cyber-green">
-                <Shield className="h-4 w-4" />
+                <Lock className="h-4 w-4" />
                 <span>Privacy</span>
               </TabsTrigger>
             </TabsList>
             
             <TabsContent value="profile" className="space-y-4">
-              <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">User Profile</h3>
+              <div className="p-4 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md">
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <User className="h-4 w-4 mr-2 text-cyber-green" />
+                  User Profile
+                </h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="display-name">Display Name</Label>
                     <Input 
                       id="display-name" 
-                      className="cyber-input" 
+                      className="bg-cyber-dark/70 border-white/20 focus:border-cyber-green/50" 
                       placeholder="Researcher" 
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
@@ -126,7 +133,7 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     <Label htmlFor="email">Email Address</Label>
                     <Input 
                       id="email" 
-                      className="cyber-input" 
+                      className="bg-cyber-dark/70 border-white/20 focus:border-cyber-green/50" 
                       type="email" 
                       placeholder="researcher@example.com" 
                       value={email}
@@ -136,13 +143,16 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                 </div>
               </div>
               
-              <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">Wallet Connection</h3>
-                <div className="border border-white/10 rounded-md p-4 bg-cyber-dark/50">
+              <div className="p-4 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md">
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <Shield className="h-4 w-4 mr-2 text-cyber-green" />
+                  Source Verification
+                </h3>
+                <div className="border border-white/10 rounded-md p-4 bg-cyber-dark/70">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-white">MetaMask Integration</p>
-                      <p className="text-xs text-white/60">Secure blockchain authentication</p>
+                      <p className="text-white">Academic Verification</p>
+                      <p className="text-xs text-white/60">Prioritize academic and peer-reviewed sources</p>
                     </div>
                     <div className="text-cyber-cyan text-xs flex items-center">
                       <span>Coming Soon</span>
@@ -153,8 +163,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
             </TabsContent>
             
             <TabsContent value="privacy" className="space-y-4">
-              <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">Privacy Settings</h3>
+              <div className="p-4 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md">
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <Lock className="h-4 w-4 mr-2 text-cyber-green" />
+                  Privacy Settings
+                </h3>
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
@@ -165,21 +178,25 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                       id="anonymous-mode" 
                       checked={anonymousMode}
                       onCheckedChange={handleAnonymousModeChange}
+                      className="data-[state=checked]:bg-cyber-green"
                     />
                   </div>
                 </div>
               </div>
               
-              <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">Data Management</h3>
+              <div className="p-4 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md">
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <FileText className="h-4 w-4 mr-2 text-cyber-green" />
+                  Data Management
+                </h3>
                 <div className="space-y-4">
                   <div>
                     <Button 
                       variant="outline" 
-                      className="w-full cyber-button-outline flex items-center"
+                      className="w-full flex items-center border-white/20 hover:border-cyber-green/40 bg-transparent hover:bg-cyber-green/5 transition-all"
                       onClick={handleExportData}
                     >
-                      <DownloadCloud className="mr-2 h-4 w-4" />
+                      <DownloadCloud className="mr-2 h-4 w-4 text-cyber-green" />
                       Export Chat History
                     </Button>
                     <p className="text-xs text-white/60 mt-1">
@@ -190,7 +207,7 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                   <div>
                     <Button 
                       variant="destructive" 
-                      className="w-full flex items-center"
+                      className="w-full flex items-center bg-red-500/20 hover:bg-red-500/30 text-white border border-red-500/30"
                       onClick={handleClearHistory}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
@@ -206,8 +223,11 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
           </Tabs>
         </div>
         
-        <SheetFooter className="border-t border-white/10 pt-4">
-          <Button className="cyber-button w-full" onClick={handleSave}>
+        <SheetFooter className="border-t border-cyber-green/20 pt-4">
+          <Button 
+            className="w-full bg-cyber-green hover:bg-cyber-green/90 text-black transition-all duration-300" 
+            onClick={handleSave}
+          >
             <Save className="h-4 w-4 mr-2" />
             Save Changes
           </Button>

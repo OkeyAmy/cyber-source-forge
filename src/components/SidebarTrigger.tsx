@@ -27,14 +27,17 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
   return (
     <button 
       className={cn(
-        "sidebar-trigger-visible z-40 flex items-center justify-center transition-all duration-300 bg-cyber-dark/80 p-2 rounded-full border border-cyber-green/30 hover:border-cyber-green/60",
+        "flex items-center justify-center transition-all duration-300 p-2 rounded-full border hover:bg-cyber-green/10 z-40",
+        collapsed 
+          ? "border-white/20 hover:border-cyber-green/40" 
+          : "border-cyber-green/30 bg-cyber-green/10 hover:border-cyber-green/60",
         position === 'left' 
           ? collapsed ? 'left-4 md:left-6' : 'left-[16rem] md:left-[16.5rem]' 
           : collapsed ? 'right-4 md:right-6' : 'right-[18rem] md:right-[18.5rem]',
         isMobile ? (
           collapsed ? 'fixed bottom-16' : 'hidden'
         ) : (
-          'fixed top-24'
+          'fixed top-20'
         ),
         className
       )}

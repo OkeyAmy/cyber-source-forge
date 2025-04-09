@@ -40,10 +40,15 @@ const SourceCard: React.FC<SourceCardProps> = ({
   return (
     <div 
       className={cn(
-        "relative cyber-card flex flex-col hover:border-cyber-green/40 transition-all duration-300 group cursor-pointer",
+        "relative group cursor-pointer transition-all duration-300 rounded-lg border overflow-hidden",
+        isVerified 
+          ? "border-cyber-green/30 hover:border-cyber-green/80" 
+          : "border-cyber-magenta/30 hover:border-cyber-magenta/50",
         size === 'small' && "p-2 min-w-[200px] max-w-[200px]",
         size === 'medium' && "p-3 min-w-[280px] max-w-[280px]",
         size === 'large' && "p-4 w-full",
+        "bg-cyber-dark/60 backdrop-blur-md hover:bg-cyber-dark/80 shadow-[0_2px_12px_rgba(0,0,0,0.15)]",
+        "hover:shadow-[0_4px_20px_rgba(0,255,170,0.15)]",
         className
       )}
       onClick={handleClick}
@@ -51,8 +56,8 @@ const SourceCard: React.FC<SourceCardProps> = ({
       {/* Source Badge */}
       <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
         isVerified 
-          ? 'bg-cyber-green/20 text-cyber-green'
-          : 'bg-cyber-magenta/20 text-cyber-magenta'
+          ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green/40'
+          : 'bg-cyber-magenta/20 text-cyber-magenta border border-cyber-magenta/40'
       }`}>
         {isVerified ? (
           <>
@@ -68,26 +73,26 @@ const SourceCard: React.FC<SourceCardProps> = ({
       </div>
       
       {/* Source Type Badge */}
-      <div className="flex items-center mb-2">
+      <div className="flex items-center mb-3">
         {logoUrl && (
-          <div className="h-6 w-6 mr-2">
+          <div className="h-6 w-6 mr-2 bg-white/10 rounded-full p-1 flex items-center justify-center">
             <img src={logoUrl} alt={source.source} className="h-full w-full object-contain" />
           </div>
         )}
-        <span className={`text-xs py-0.5 px-2 rounded-full bg-white/10 text-white`}>
+        <span className={`text-xs py-0.5 px-2 rounded-full bg-white/10 border border-white/10 text-white`}>
           {source.source}
         </span>
       </div>
       
       {/* Title */}
-      <h3 className="text-sm font-medium text-white mb-1 line-clamp-2">{source.title}</h3>
+      <h3 className="text-sm font-medium text-white mb-2 line-clamp-2 group-hover:text-cyber-green transition-colors">{source.title}</h3>
       
       {/* Link */}
       <a 
         href={source.link} 
         target="_blank" 
         rel="noopener noreferrer" 
-        className="text-xs text-cyber-cyan hover:underline flex items-center mb-2 hover:text-cyber-green transition-colors duration-200"
+        className="text-xs text-cyber-cyan hover:underline flex items-center mb-3 hover:text-cyber-green transition-colors duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <span className="truncate max-w-[180px]">{source.link}</span>
@@ -103,14 +108,21 @@ const SourceCard: React.FC<SourceCardProps> = ({
       
       {/* Preview Images */}
       {showPreview && source.images && source.images.length > 0 && (
-        <div className="mt-2 h-20 overflow-hidden rounded">
+        <div className="mt-3 h-24 overflow-hidden rounded group-hover:opacity-90 transition-opacity">
           <img 
             src={source.images[0]} 
             alt="Preview" 
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
         </div>
       )}
+      
+      {/* View More Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
+        <span className="text-xs text-cyber-green px-3 py-1 rounded-full border border-cyber-green/40 bg-cyber-dark/50 backdrop-blur-sm">
+          View Source
+        </span>
+      </div>
     </div>
   );
 };
