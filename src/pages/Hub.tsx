@@ -4,7 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { 
   ChevronRight, Send, Trash2, PlusCircle, X, 
-  Menu, MessageSquare, Settings, AlertCircle, Shield
+  Menu, MessageSquare, Settings, AlertCircle, Shield,
+  Download, Share
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,43 +17,30 @@ import { useUserSettings } from '@/hooks/useUserSettings';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CyberBackground from '@/components/CyberBackground';
 import FocusAreaSelector from '@/components/FocusAreaSelector';
-import { SourceType } from '@/components/SourceCard';
+import { SourceType } from '@/types/chatTypes';
 import SourceCard from '@/components/SourceCard';
 import SidebarTrigger from '@/components/SidebarTrigger';
 import SettingsCenter from '@/components/SettingsCenter';
 import HorizontalSourceScroller from '@/components/HorizontalSourceScroller';
 import LoadingState from '@/components/LoadingState';
-
-// Define the structure for chat messages
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  sources?: {
-    url: string;
-    title: string;
-    verified?: boolean;
-  }[];
-}
-
-// Define the types for the API responses
-interface ProcessQueryResponse {
-  response: {
-    content: string;
-    sources: SourceType[];
-  };
-}
+import { ChatMessage, ProcessQueryResponse } from '@/types/chatTypes';
 
 const Hub: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get chat history from hook with safe fallbacks
+  // Get chat history from hook with safe fallbacks and type assertion
   const { 
     chatHistory = [], 
     addMessage = () => {}, 
     clearChatHistory = () => {},
-    // Add other methods with defaults 
-  } = useChatHistory();
+    exportChatHistory = () => ""
+  } = useChatHistory() as {
+    chatHistory: ChatMessage[];
+    addMessage: (message: ChatMessage) => void;
+    clearChatHistory: () => void;
+    exportChatHistory: () => string;
+  };
   
   // Get user settings with safe fallbacks
   const { settings, isLoading: settingsLoading } = useUserSettings();
@@ -76,9 +64,6 @@ const Hub: React.FC = () => {
     if (pendingQuery) {
       setInputValue(pendingQuery);
       sessionStorage.removeItem('pendingQuery');
-      
-      // Optional: Automatically submit the query
-      // handleSendMessage(pendingQuery);
     }
   }, []);
 
@@ -115,8 +100,31 @@ const Hub: React.FC = () => {
     return sources.map(source => ({
       url: source.link,
       title: source.title,
+      source: source.source,
       verified: source.verified
     }));
+  };
+
+  const handleExportChat = () => {
+    // Create a hidden download link
+    const blob = new Blob([exportChatHistory()], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-export-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+    
+    toast({
+      title: "Chat exported",
+      description: "Your conversation has been downloaded as a text file."
+    });
   };
 
   const handleSendMessage = async () => {
@@ -128,9 +136,7 @@ const Hub: React.FC = () => {
       content: inputValue
     };
     
-    if (typeof addMessage === 'function') {
-      addMessage(userMessage);
-    }
+    addMessage(userMessage);
     
     // Clear input and set loading state
     setInputValue('');
@@ -194,30 +200,26 @@ const Hub: React.FC = () => {
       });
       
       // Add assistant message to chat
-      const assistantMessage = {
-        role: "assistant" as const,
+      const assistantMessage: ChatMessage = {
+        role: "assistant",
         content: data.response.content,
         sources: convertSources(data.response.sources)
-      } as ChatMessage;
+      };
       
-      if (typeof addMessage === 'function') {
-        addMessage(assistantMessage);
-      }
+      addMessage(assistantMessage);
       
     } catch (err) {
       console.error('Error processing query:', err);
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       
       // Add error message to chat
-      const errorMessage = {
-        role: "assistant" as const,
+      const errorMessage: ChatMessage = {
+        role: "assistant",
         content: "I'm sorry, I encountered an error while processing your request. Please try again or rephrase your query.",
         sources: []
-      } as ChatMessage;
+      };
       
-      if (typeof addMessage === 'function') {
-        addMessage(errorMessage);
-      }
+      addMessage(errorMessage);
     } finally {
       setIsLoading(false);
       setLoadingPhase(0);
@@ -232,9 +234,7 @@ const Hub: React.FC = () => {
   
   const handleClearChat = () => {
     if (window.confirm('Are you sure you want to clear the chat history?')) {
-      if (typeof clearChatHistory === 'function') {
-        clearChatHistory();
-      }
+      clearChatHistory();
       setAllSources([]);
       toast({
         title: "Chat cleared",
@@ -250,13 +250,12 @@ const Hub: React.FC = () => {
       {/* Header */}
       <header className="border-b border-cyber-green/20 p-4 flex items-center justify-between bg-cyber-dark/80 backdrop-blur-md z-50">
         <div className="flex items-center">
-          <SidebarTrigger
-            isOpen={sidebarOpen}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          />
-          <div className="ml-4 flex items-center">
-            <h1 className="text-xl font-bold text-cyber-green">SourceFinder Hub</h1>
-            <span className="ml-2 text-xs text-cyber-cyan">v0.1.0</span>
+          <div className="w-10 h-10 bg-cyber-dark rounded-md border-2 border-cyber-green flex items-center justify-center mr-3">
+            <Shield className="text-cyber-green w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-cyber-green">SOURCE<span className="text-white">FINDER</span></h1>
+            <p className="text-xs text-cyber-cyan">v0.1.0</p>
           </div>
         </div>
         
@@ -268,6 +267,16 @@ const Hub: React.FC = () => {
             onClick={() => navigate('/')}
           >
             Home
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
+            onClick={handleExportChat}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export
           </Button>
           
           <Button
@@ -291,14 +300,24 @@ const Hub: React.FC = () => {
           <div className="flex flex-col h-full">
             <div className="p-4 border-b border-cyber-green/20 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-white">Chat History</h2>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="text-white/50 hover:text-cyber-green hover:bg-transparent"
-                onClick={handleClearChat}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-white/50 hover:text-cyber-green hover:bg-transparent"
+                  onClick={handleClearChat}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-white/50 hover:text-cyber-green hover:bg-transparent md:hidden"
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
             <ScrollArea className="flex-1 p-4">
@@ -333,9 +352,7 @@ const Hub: React.FC = () => {
                 variant="outline" 
                 className="w-full justify-start text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
                 onClick={() => {
-                  if (typeof clearChatHistory === 'function') {
-                    clearChatHistory();
-                  }
+                  clearChatHistory();
                   setAllSources([]);
                   navigate('/hub');
                 }}
@@ -351,10 +368,17 @@ const Hub: React.FC = () => {
         <main className="flex-1 flex flex-col overflow-hidden relative">
           <Tabs defaultValue="chat" className="flex flex-col flex-1">
             <div className="flex items-center justify-between px-4 py-2 border-b border-cyber-green/20 bg-cyber-dark/60">
-              <TabsList className="bg-cyber-dark/50">
-                <TabsTrigger value="chat" className="data-[state=active]:bg-cyber-green/20">Chat</TabsTrigger>
-                <TabsTrigger value="sources" className="data-[state=active]:bg-cyber-green/20">Verified Sources</TabsTrigger>
-              </TabsList>
+              <div className="flex items-center space-x-2">
+                <SidebarTrigger
+                  isOpen={sidebarOpen}
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="md:hidden"
+                />
+                <TabsList className="bg-cyber-dark/50">
+                  <TabsTrigger value="chat" className="data-[state=active]:bg-cyber-green/20">Chat</TabsTrigger>
+                  <TabsTrigger value="sources" className="data-[state=active]:bg-cyber-green/20">Verified Sources</TabsTrigger>
+                </TabsList>
+              </div>
               
               <div className="flex items-center">
                 <FocusAreaSelector 
@@ -415,11 +439,11 @@ const Hub: React.FC = () => {
                           <div className="mt-2 ml-4">
                             <HorizontalSourceScroller 
                               sources={message.sources.map(source => ({
-                                num: Math.floor(Math.random() * 1000), // Generate a random number for now
+                                num: Math.floor(Math.random() * 1000),
                                 title: source.title,
                                 link: source.url,
-                                source: "Web", // Default to Web for now
-                                preview: "Source preview would go here...", // Add a default preview
+                                source: source.source as "Reddit" | "Twitter" | "Web" | "News" | "Academic" || "Web",
+                                preview: "Source preview would go here...",
                                 verified: source.verified
                               }))} 
                               onSourceClick={handleSourceClick}

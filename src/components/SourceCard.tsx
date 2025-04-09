@@ -2,17 +2,7 @@
 import React from 'react';
 import { ExternalLink, Shield, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-export type SourceType = {
-  num: number;
-  title: string;
-  link: string;
-  source: "Reddit" | "Twitter" | "Web" | "News" | "Academic";
-  preview: string;
-  images?: string[];
-  logo?: string;
-  verified?: boolean;
-};
+import { SourceType } from '@/types/chatTypes';
 
 interface SourceCardProps {
   source: SourceType;
@@ -23,11 +13,11 @@ interface SourceCardProps {
 }
 
 const sourceIcons: Record<string, string> = {
-  'Reddit': '/lovable-uploads/32c1152e-87c1-4e83-b927-b2c5ca380f63.png',
-  'Twitter': '/lovable-uploads/32c1152e-87c1-4e83-b927-b2c5ca380f63.png',
-  'Web': '/lovable-uploads/32c1152e-87c1-4e83-b927-b2c5ca380f63.png',
-  'News': '/lovable-uploads/32c1152e-87c1-4e83-b927-b2c5ca380f63.png',
-  'Academic': '/lovable-uploads/32c1152e-87c1-4e83-b927-b2c5ca380f63.png',
+  'Reddit': '/lovable-uploads/7fbbde5b-4d67-4cba-8762-c7ec5457a6ec.png',
+  'Twitter': '/lovable-uploads/9c56662f-b78c-4cde-a963-e4470e1f7efd.png',
+  'Web': '/lovable-uploads/30cdaa08-bba2-4a5e-a1fa-efb78b0b978b.png',
+  'News': '/lovable-uploads/65485ff4-54bb-4524-908c-16466cdd44c0.png',
+  'Academic': '/lovable-uploads/65485ff4-54bb-4524-908c-16466cdd44c0.png',
 };
 
 const SourceCard: React.FC<SourceCardProps> = ({ 
@@ -43,16 +33,20 @@ const SourceCard: React.FC<SourceCardProps> = ({
   // Get logo based on source type or use provided logo
   const logoUrl = source.logo || sourceIcons[source.source] || null;
   
+  const handleClick = () => {
+    if (onClick) onClick(source);
+  };
+  
   return (
     <div 
       className={cn(
-        "relative cyber-card flex flex-col hover:border-cyber-green/40 transition-all duration-300 group",
+        "relative cyber-card flex flex-col hover:border-cyber-green/40 transition-all duration-300 group cursor-pointer",
         size === 'small' && "p-2 min-w-[200px] max-w-[200px]",
         size === 'medium' && "p-3 min-w-[280px] max-w-[280px]",
         size === 'large' && "p-4 w-full",
         className
       )}
-      onClick={() => onClick?.(source)}
+      onClick={handleClick}
     >
       {/* Source Badge */}
       <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold ${

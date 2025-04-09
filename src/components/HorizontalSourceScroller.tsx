@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { SourceType } from './SourceCard';
+import { SourceType } from '@/types/chatTypes';
 import SourceCard from './SourceCard';
 
 interface HorizontalSourceScrollerProps {
@@ -64,7 +64,7 @@ const HorizontalSourceScroller: React.FC<HorizontalSourceScrollerProps> = ({
             source={source}
             size="small"
             onClick={() => onSourceClick?.(source)}
-            className="flex-shrink-0 cursor-pointer"
+            className="flex-shrink-0"
           />
         ))}
       </div>

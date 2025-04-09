@@ -79,11 +79,11 @@ export const useUserSettings = () => {
         ...data,
         search_preferences: {
           focusArea: searchPrefs.focusArea || 'Research',
-          anonymousMode: searchPrefs.anonymousMode || false
+          anonymousMode: searchPrefs.anonymousMode !== undefined ? searchPrefs.anonymousMode : false
         },
         privacy_settings: {
-          saveHistory: privacyPrefs.saveHistory || true,
-          dataCollection: privacyPrefs.dataCollection || true
+          saveHistory: privacyPrefs.saveHistory !== undefined ? privacyPrefs.saveHistory : true,
+          dataCollection: privacyPrefs.dataCollection !== undefined ? privacyPrefs.dataCollection : true
         }
       };
 
@@ -99,7 +99,7 @@ export const useUserSettings = () => {
   };
 
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
-    if (!user || !settings) {
+    if (!user) {
       toast({
         title: "Error",
         description: "You must be logged in to update settings",
@@ -146,12 +146,19 @@ export const useUserSettings = () => {
   // Get settings with defaults for null values
   const getSettingsWithDefaults = () => {
     if (!settings) {
-      return defaultSettings;
+      return defaultSettings as UserSettings;
     }
+    
     return {
       ...settings,
-      search_preferences: settings.search_preferences || defaultSettings.search_preferences,
-      privacy_settings: settings.privacy_settings || defaultSettings.privacy_settings
+      search_preferences: {
+        ...defaultSettings.search_preferences,
+        ...settings.search_preferences
+      },
+      privacy_settings: {
+        ...defaultSettings.privacy_settings,
+        ...settings.privacy_settings
+      }
     };
   };
 

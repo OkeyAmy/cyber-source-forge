@@ -6,7 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 type SidebarTriggerProps = {
   isCollapsed?: boolean;
-  isOpen?: boolean; // Added support for isOpen prop
+  isOpen?: boolean;
   onClick: () => void;
   position?: 'left' | 'right';
   className?: string;
@@ -16,7 +16,7 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
   isCollapsed, 
   isOpen,
   onClick, 
-  position = 'left', // Default to left 
+  position = 'left',
   className 
 }) => {
   const isMobile = useIsMobile();
@@ -27,7 +27,7 @@ const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
   return (
     <button 
       className={cn(
-        "sidebar-trigger-visible z-40 flex items-center justify-center transition-all duration-300",
+        "sidebar-trigger-visible z-40 flex items-center justify-center transition-all duration-300 bg-cyber-dark/80 p-2 rounded-full border border-cyber-green/30 hover:border-cyber-green/60",
         position === 'left' 
           ? collapsed ? 'left-4 md:left-6' : 'left-[16rem] md:left-[16.5rem]' 
           : collapsed ? 'right-4 md:right-6' : 'right-[18rem] md:right-[18.5rem]',
