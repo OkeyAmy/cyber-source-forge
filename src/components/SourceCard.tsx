@@ -19,7 +19,7 @@ interface SourceCardProps {
   className?: string;
   size?: 'small' | 'medium' | 'large';
   showPreview?: boolean;
-  onClick?: () => void;
+  onClick?: (source: SourceType) => void;
 }
 
 const sourceIcons: Record<string, string> = {
@@ -52,7 +52,7 @@ const SourceCard: React.FC<SourceCardProps> = ({
         size === 'large' && "p-4 w-full",
         className
       )}
-      onClick={onClick}
+      onClick={() => onClick?.(source)}
     >
       {/* Source Badge */}
       <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
