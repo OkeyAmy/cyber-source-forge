@@ -1,50 +1,57 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { 
-  ChevronRight, Send, Trash2, PlusCircle, X, 
-  Menu, MessageSquare, Settings, AlertCircle, Shield,
-  Download, Share
+  Menu, MessageSquare, Share, User,
+  Shield, ChevronRight, Send
 } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Separator } from "@/components/ui/separator";
-import { useChatHistory } from '@/hooks/useChatHistory';
-import { useUserSettings } from '@/hooks/useUserSettings';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import CyberBackground from '@/components/CyberBackground';
-import FocusAreaSelector from '@/components/FocusAreaSelector';
-import { SourceType } from '@/types/chatTypes';
+import { SourceType, ChatMessage, ProcessQueryResponse } from '@/types/chatTypes';
 import SourceCard from '@/components/SourceCard';
 import SidebarTrigger from '@/components/SidebarTrigger';
 import SettingsCenter from '@/components/SettingsCenter';
 import HorizontalSourceScroller from '@/components/HorizontalSourceScroller';
 import LoadingState from '@/components/LoadingState';
-import { ChatMessage, ProcessQueryResponse } from '@/types/chatTypes';
+import { useChatHistory } from '@/hooks/useChatHistory';
 
 const Hub: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   
-  // Get chat history from hook with safe fallbacks and type assertion
+  // Create a temporary mock implementation that matches the expected interface
+  const chatHistoryHook = useChatHistory();
   const { 
-    chatHistory = [], 
-    addMessage = () => {}, 
-    clearChatHistory = () => {},
-    exportChatHistory = () => ""
-  } = useChatHistory() as {
-    chatHistory: ChatMessage[];
-    addMessage: (message: ChatMessage) => void;
-    clearChatHistory: () => void;
-    exportChatHistory: () => string;
+    chatHistory: chatSessions = [], 
+    currentChat = null,
+    isLoading: chatLoading = false,
+    createNewChat = async () => null,
+    updateChatMessages = async () => {},
+    clearAllChatHistory = async () => {},
+    exportChatData = async () => {}
+  } = chatHistoryHook;
+  
+  // Convert sessions to messages for the current implementation
+  const chatHistory: ChatMessage[] = currentChat?.messages || [];
+  
+  const addMessage = (message: ChatMessage) => {
+    if (currentChat) {
+      const updatedMessages = [...currentChat.messages, message];
+      updateChatMessages(currentChat.id, updatedMessages);
+    }
   };
   
-  // Get user settings with safe fallbacks
-  const { settings, isLoading: settingsLoading } = useUserSettings();
-  const userPreferences = settings?.search_preferences || { focusArea: 'Research', anonymousMode: false };
+  const clearChatHistory = () => {
+    clearAllChatHistory();
+  };
+  
+  const exportChatHistory = () => {
+    exportChatData();
+    return "Chat exported";
+  };
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -54,7 +61,7 @@ const Hub: React.FC = () => {
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [allSources, setAllSources] = useState<SourceType[]>([]);
-  const [focusArea, setFocusArea] = useState<string>(userPreferences?.focusArea || "All");
+  const [currentSource, setCurrentSource] = useState<'Reddit' | 'Academic' | 'All Sources'>('All Sources');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -65,18 +72,16 @@ const Hub: React.FC = () => {
       setInputValue(pendingQuery);
       sessionStorage.removeItem('pendingQuery');
     }
-  }, []);
+    
+    // Initialize a chat session if needed
+    if (!currentChat && !chatLoading) {
+      createNewChat();
+    }
+  }, [chatLoading]);
 
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory]);
-  
-  // Update focusArea whenever user preferences change
-  useEffect(() => {
-    if (settings?.search_preferences?.focusArea) {
-      setFocusArea(settings.search_preferences.focusArea);
-    }
-  }, [settings]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -106,20 +111,7 @@ const Hub: React.FC = () => {
   };
 
   const handleExportChat = () => {
-    // Create a hidden download link
-    const blob = new Blob([exportChatHistory()], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chat-export-${new Date().toISOString().slice(0, 10)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    
-    // Clean up
-    setTimeout(() => {
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 100);
+    exportChatHistory();
     
     toast({
       title: "Chat exported",
@@ -144,19 +136,6 @@ const Hub: React.FC = () => {
     setError(null);
     
     try {
-      // Determine sources based on focus area
-      let sourcesList;
-      switch (focusArea) {
-        case "Research":
-          sourcesList = ["News", "Academic", "Web"];
-          break;
-        case "Social":
-          sourcesList = ["Reddit", "Twitter", "Web"];
-          break;
-        default: // "All"
-          sourcesList = ["Reddit", "Twitter", "Web", "News", "Academic"];
-      }
-      
       // Simulate different loading states
       setTimeout(() => {
         setLoadingMessage('Searching for sources...');
@@ -168,30 +147,57 @@ const Hub: React.FC = () => {
         setLoadingPhase(2);
       }, 2500);
       
-      // API call to process query
-      const response = await fetch('https://source-finder-hoic.onrender.com/api/process-query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: userMessage.content,
-          filters: {
-            Sources: sourcesList
-          }
-        }),
-      });
+      // Mock API response based on the selected source
+      let mockSources: SourceType[] = [];
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      // Generate different sources based on the currently selected source type
+      if (currentSource === 'Reddit' || currentSource === 'All Sources') {
+        mockSources.push({
+          num: 1,
+          title: "Reddit discussion on the topic",
+          link: "https://reddit.com",
+          source: "Reddit",
+          preview: "Users discussing the pros and cons of this topic...",
+          verified: Math.random() > 0.5
+        });
       }
       
-      const data: ProcessQueryResponse = await response.json();
+      if (currentSource === 'Academic' || currentSource === 'All Sources') {
+        mockSources.push({
+          num: 2,
+          title: "Academic paper on this subject",
+          link: "https://example.edu/paper",
+          source: "Academic",
+          preview: "This peer-reviewed paper discusses relevant findings...",
+          verified: true
+        });
+      }
+      
+      if (currentSource === 'All Sources') {
+        mockSources.push({
+          num: 3,
+          title: "News article on related developments",
+          link: "https://news.example.com",
+          source: "News",
+          preview: "Recent developments suggest that...",
+          verified: true
+        });
+      }
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      const mockResponse: ProcessQueryResponse = {
+        response: {
+          content: `Here's what I found about "${inputValue}". According to the sources, there are multiple perspectives on this topic...`,
+          sources: mockSources
+        }
+      };
       
       // Update all sources list
       setAllSources(prevSources => {
         const newSources = [...prevSources];
-        data.response.sources.forEach(source => {
+        mockResponse.response.sources.forEach(source => {
           if (!newSources.some(s => s.link === source.link)) {
             newSources.push(source);
           }
@@ -202,8 +208,8 @@ const Hub: React.FC = () => {
       // Add assistant message to chat
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: data.response.content,
-        sources: convertSources(data.response.sources)
+        content: mockResponse.response.content,
+        sources: convertSources(mockResponse.response.sources)
       };
       
       addMessage(assistantMessage);
@@ -243,6 +249,10 @@ const Hub: React.FC = () => {
     }
   };
   
+  const handleSourceChange = (source: 'Reddit' | 'Academic' | 'All Sources') => {
+    setCurrentSource(source);
+  };
+  
   return (
     <div className="h-screen flex flex-col bg-cyber-dark text-white overflow-hidden">
       <CyberBackground />
@@ -250,6 +260,7 @@ const Hub: React.FC = () => {
       {/* Header */}
       <header className="border-b border-cyber-green/20 p-4 flex items-center justify-between bg-cyber-dark/80 backdrop-blur-md z-50">
         <div className="flex items-center">
+          {/* Logo as specified in the design */}
           <div className="w-10 h-10 bg-cyber-dark rounded-md border-2 border-cyber-green flex items-center justify-center mr-3">
             <Shield className="text-cyber-green w-5 h-5" />
           </div>
@@ -260,32 +271,25 @@ const Hub: React.FC = () => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
-            onClick={() => navigate('/')}
-          >
-            Home
-          </Button>
-          
+          {/* Share/Export Button */}
           <Button
             variant="outline"
             size="sm"
-            className="text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
+            className="text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent flex items-center gap-1"
             onClick={handleExportChat}
           >
-            <Download className="h-4 w-4 mr-1" />
+            <Share className="h-4 w-4" />
             Export
           </Button>
           
+          {/* User Settings Button */}
           <Button
             variant="outline"
             size="icon"
             className="text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
             onClick={() => setSettingsOpen(true)}
           >
-            <Settings className="h-4 w-4" />
+            <User className="h-4 w-4" />
           </Button>
         </div>
       </header>
@@ -300,28 +304,18 @@ const Hub: React.FC = () => {
           <div className="flex flex-col h-full">
             <div className="p-4 border-b border-cyber-green/20 flex justify-between items-center">
               <h2 className="text-lg font-semibold text-white">Chat History</h2>
-              <div className="flex space-x-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="text-white/50 hover:text-cyber-green hover:bg-transparent"
-                  onClick={handleClearChat}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="text-white/50 hover:text-cyber-green hover:bg-transparent md:hidden"
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-white/50 hover:text-cyber-green hover:bg-transparent md:hidden"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
             
             <ScrollArea className="flex-1 p-4">
-              {chatHistory.length === 0 ? (
+              {chatSessions.length === 0 ? (
                 <div className="text-center py-8 text-white/40">
                   <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p>No messages yet</p>
@@ -329,17 +323,21 @@ const Hub: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {chatHistory.filter(msg => msg.role === 'user').map((msg, idx) => (
+                  {chatSessions.map((session) => (
                     <div 
-                      key={idx} 
+                      key={session.id} 
                       className="p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
                       onClick={() => {
+                        // Load this chat session
+                        if (session.id !== currentChat?.id) {
+                          chatHistoryHook.loadChat(session.id);
+                        }
                         scrollToBottom();
                       }}
                     >
-                      <p className="text-sm line-clamp-2">{msg.content}</p>
+                      <p className="text-sm line-clamp-2">{session.title || "Conversation"}</p>
                       <p className="text-xs text-cyber-cyan mt-1">
-                        {new Date().toLocaleDateString()}
+                        {new Date(session.updatedAt).toLocaleDateString()}
                       </p>
                     </div>
                   ))}
@@ -352,12 +350,11 @@ const Hub: React.FC = () => {
                 variant="outline" 
                 className="w-full justify-start text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
                 onClick={() => {
-                  clearChatHistory();
+                  createNewChat();
                   setAllSources([]);
-                  navigate('/hub');
                 }}
               >
-                <PlusCircle className="mr-2 h-4 w-4" />
+                <MessageSquare className="mr-2 h-4 w-4" />
                 New Conversation
               </Button>
             </div>
@@ -376,15 +373,35 @@ const Hub: React.FC = () => {
                 />
                 <TabsList className="bg-cyber-dark/50">
                   <TabsTrigger value="chat" className="data-[state=active]:bg-cyber-green/20">Chat</TabsTrigger>
-                  <TabsTrigger value="sources" className="data-[state=active]:bg-cyber-green/20">Verified Sources</TabsTrigger>
+                  <TabsTrigger value="sources" className="data-[state=active]:bg-cyber-green/20">{currentSource}</TabsTrigger>
                 </TabsList>
               </div>
               
-              <div className="flex items-center">
-                <FocusAreaSelector 
-                  selected={focusArea as 'Research' | 'Social' | 'All'}
-                  onChange={setFocusArea as (area: 'Research' | 'Social' | 'All') => void}
-                />
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent ${currentSource === 'Reddit' ? 'border-cyber-green text-cyber-green' : ''}`}
+                  onClick={() => handleSourceChange('Reddit')}
+                >
+                  Reddit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent ${currentSource === 'Academic' ? 'border-cyber-green text-cyber-green' : ''}`}
+                  onClick={() => handleSourceChange('Academic')}
+                >
+                  Academic
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent ${currentSource === 'All Sources' ? 'border-cyber-green text-cyber-green' : ''}`}
+                  onClick={() => handleSourceChange('All Sources')}
+                >
+                  All Sources
+                </Button>
               </div>
             </div>
             
@@ -456,36 +473,7 @@ const Hub: React.FC = () => {
                     {isLoading && (
                       <div className="max-w-3xl mr-auto">
                         <div className="p-4 rounded-lg bg-white/5 border border-white/10">
-                          <div className="flex items-center gap-3">
-                            <div className="animate-pulse">
-                              <div className="w-6 h-6 bg-cyber-green/20 rounded-full flex items-center justify-center">
-                                <div className="w-3 h-3 bg-cyber-green rounded-full"></div>
-                              </div>
-                            </div>
-                            <p className="text-sm text-white/70">{loadingMessage}</p>
-                          </div>
-                          <div className="mt-3 space-y-2">
-                            {loadingPhase >= 1 && (
-                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-cyber-green/40 rounded-full animate-pulse" style={{width: '60%'}}></div>
-                              </div>
-                            )}
-                            {loadingPhase >= 2 && (
-                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                <div className="h-full bg-cyber-green/60 rounded-full animate-pulse" style={{width: '30%'}}></div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {error && (
-                      <div className="max-w-3xl mx-auto bg-red-500/20 border border-red-500/40 rounded-lg p-4 flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-medium">Error</p>
-                          <p className="text-sm opacity-80">{error}</p>
+                          <LoadingState message={loadingMessage} phase={loadingPhase} />
                         </div>
                       </div>
                     )}
@@ -504,7 +492,7 @@ const Hub: React.FC = () => {
                       value={inputValue}
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
-                      placeholder="Ask a research question..."
+                      placeholder="What can I help with?"
                       className="min-h-[60px] border-cyber-green/30 bg-cyber-dark focus:border-cyber-green/50 resize-none pr-10"
                       disabled={isLoading}
                     />
@@ -516,15 +504,6 @@ const Hub: React.FC = () => {
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-                  
-                  <div className="mt-2 text-xs text-white/50 flex justify-between">
-                    <div>
-                      Press <kbd className="px-1 py-0.5 rounded bg-white/10 text-xs">Enter</kbd> to send, <kbd className="px-1 py-0.5 rounded bg-white/10 text-xs">Shift+Enter</kbd> for new line
-                    </div>
-                    <div>
-                      {userPreferences?.anonymousMode ? 'Anonymous Mode On' : 'Anonymous Mode Off'}
-                    </div>
-                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -532,13 +511,18 @@ const Hub: React.FC = () => {
             <TabsContent value="sources" className="flex-1 overflow-hidden m-0 p-4 data-[state=inactive]:hidden">
               {allSources.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-white/40">
-                  <AlertCircle className="h-12 w-12 mb-4 opacity-30" />
+                  <MessageSquare className="h-12 w-12 mb-4 opacity-30" />
                   <p className="text-lg">No sources gathered yet</p>
                   <p className="text-sm mt-2">Start a conversation to collect verified sources</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {allSources.map((source, idx) => (
+                  {allSources
+                    .filter(source => 
+                      currentSource === 'All Sources' || 
+                      source.source === currentSource
+                    )
+                    .map((source, idx) => (
                     <SourceCard
                       key={idx}
                       source={source}

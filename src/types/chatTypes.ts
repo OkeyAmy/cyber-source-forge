@@ -51,3 +51,26 @@ export interface ChatHistoryHook {
   updateMessage: (messageId: string, updates: Partial<ChatMessage>) => void;
   exportChatHistory: () => string;
 }
+
+// Update the hook interface to match our implementation
+export interface UseChatHistoryReturn {
+  chatHistory: ChatSession[];
+  currentChat: ChatSession | null;
+  isLoading: boolean;
+  error: Error | null;
+  createNewChat: () => Promise<ChatSession | null>;
+  updateChatMessages: (chatId: string, messages: ChatMessage[]) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
+  loadChat: (chatId: string) => Promise<ChatSession | null>;
+  clearAllChatHistory: () => Promise<void>;
+  exportChatData: () => Promise<void>;
+  refetch: () => Promise<void>;
+}
+
+// Add a simpler interface for component use
+export interface SimpleChatHistoryHook {
+  chatHistory: ChatMessage[];
+  addMessage: (message: ChatMessage) => void;
+  clearChatHistory: () => void;
+  exportChatHistory: () => string;
+}

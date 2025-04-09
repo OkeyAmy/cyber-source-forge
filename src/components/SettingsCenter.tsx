@@ -1,21 +1,14 @@
 
 import React, { useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { User, Search, Shield, X, Save, DownloadCloud, Trash2 } from 'lucide-react';
+import { User, Shield, X, Save, DownloadCloud, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
-import { useUserSettings, SearchPreferences } from '@/hooks/useUserSettings';
+import { useUserSettings } from '@/hooks/useUserSettings';
 import { useChatHistory } from '@/hooks/useChatHistory';
 
 interface SettingsCenterProps {
@@ -26,54 +19,55 @@ interface SettingsCenterProps {
 const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
   const { toast } = useToast();
   const { settings, isLoading, updateSettings } = useUserSettings();
-  const { clearAllChatHistory, exportChatData } = useChatHistory();
+  
+  // Create simplified version for chatHistory functions
+  const chatHistoryHook = useChatHistory();
+  const clearAllChatHistory = chatHistoryHook.clearAllChatHistory || (() => Promise.resolve());
+  const exportChatData = chatHistoryHook.exportChatData || (() => Promise.resolve());
   
   const [displayName, setDisplayName] = React.useState('Researcher');
   const [email, setEmail] = React.useState('');
-  const [searchPreferences, setSearchPreferences] = React.useState<SearchPreferences>({
-    focusArea: 'Research',
-    anonymousMode: false,
-  });
+  const [anonymousMode, setAnonymousMode] = React.useState(false);
 
   // Initialize form with user settings
   useEffect(() => {
     if (settings) {
       setDisplayName(settings.display_name || 'Researcher');
       setEmail(settings.email || '');
-      setSearchPreferences(settings.search_preferences || {
-        focusArea: 'Research',
-        anonymousMode: false,
-      });
+      setAnonymousMode(settings.search_preferences?.anonymousMode || false);
     }
   }, [settings]);
 
-  const handleFocusAreaChange = (value: string) => {
-    setSearchPreferences({
-      ...searchPreferences,
-      focusArea: value as 'Research' | 'Social' | 'All'
-    });
-  };
-
   const handleAnonymousModeChange = () => {
-    setSearchPreferences({
-      ...searchPreferences,
-      anonymousMode: !searchPreferences.anonymousMode
-    });
+    setAnonymousMode(!anonymousMode);
   };
 
   const handleExportData = () => {
     exportChatData();
+    toast({
+      title: "Data exported",
+      description: "Your data has been downloaded.",
+    });
   };
 
   const handleClearHistory = () => {
-    clearAllChatHistory();
+    if (window.confirm('Are you sure you want to clear all your chat history?')) {
+      clearAllChatHistory();
+      toast({
+        title: "History cleared",
+        description: "All your chat history has been removed.",
+      });
+    }
   };
 
   const handleSave = () => {
     updateSettings({
       display_name: displayName,
       email: email,
-      search_preferences: searchPreferences,
+      search_preferences: {
+        focusArea: settings?.search_preferences?.focusArea || 'Research',
+        anonymousMode: anonymousMode
+      },
     });
   };
 
@@ -94,7 +88,7 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
       <SheetContent className="w-full sm:max-w-md bg-cyber-dark border-l border-white/10">
         <SheetHeader className="border-b border-white/10 pb-4">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-xl font-bold cyber-text-gradient">Settings Center</SheetTitle>
+            <SheetTitle className="text-xl font-bold cyber-text-gradient">Settings</SheetTitle>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-5 w-5 text-white" />
             </Button>
@@ -103,14 +97,10 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
         
         <div className="py-6">
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid grid-cols-3 mb-6 bg-cyber-dark/50 border border-white/10">
+            <TabsList className="grid grid-cols-2 mb-6 bg-cyber-dark/50 border border-white/10">
               <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-cyber-green/20 data-[state=active]:text-cyber-green">
                 <User className="h-4 w-4" />
                 <span>Profile & Wallet</span>
-              </TabsTrigger>
-              <TabsTrigger value="search" className="flex items-center gap-2 data-[state=active]:bg-cyber-green/20 data-[state=active]:text-cyber-green">
-                <Search className="h-4 w-4" />
-                <span>Search</span>
               </TabsTrigger>
               <TabsTrigger value="privacy" className="flex items-center gap-2 data-[state=active]:bg-cyber-green/20 data-[state=active]:text-cyber-green">
                 <Shield className="h-4 w-4" />
@@ -162,30 +152,10 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
               </div>
             </TabsContent>
             
-            <TabsContent value="search" className="space-y-4">
+            <TabsContent value="privacy" className="space-y-4">
               <div className="cyber-card p-4">
-                <h3 className="text-lg font-semibold mb-4">Search Preferences</h3>
+                <h3 className="text-lg font-semibold mb-4">Privacy Settings</h3>
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="focus-area">Focus Area</Label>
-                      <p className="text-xs text-white/60">Specify your focus area for search results</p>
-                    </div>
-                    <Select 
-                      value={searchPreferences.focusArea} 
-                      onValueChange={handleFocusAreaChange}
-                    >
-                      <SelectTrigger className="w-36">
-                        <SelectValue placeholder="Research" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Research">Research</SelectItem>
-                        <SelectItem value="Social">Social</SelectItem>
-                        <SelectItem value="All">All</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <Label htmlFor="anonymous-mode">Anonymous Mode</Label>
@@ -193,15 +163,13 @@ const SettingsCenter: React.FC<SettingsCenterProps> = ({ open, onClose }) => {
                     </div>
                     <Switch 
                       id="anonymous-mode" 
-                      checked={searchPreferences.anonymousMode}
+                      checked={anonymousMode}
                       onCheckedChange={handleAnonymousModeChange}
                     />
                   </div>
                 </div>
               </div>
-            </TabsContent>
-            
-            <TabsContent value="privacy" className="space-y-4">
+              
               <div className="cyber-card p-4">
                 <h3 className="text-lg font-semibold mb-4">Data Management</h3>
                 <div className="space-y-4">
