@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Mic, Bot, X, Sparkles, Code, Brain } from 'lucide-react';
+import { Search, Mic, Bot, X, Sparkles, Code, Brain, Shield, Database } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
 
