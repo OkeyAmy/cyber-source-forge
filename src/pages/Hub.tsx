@@ -34,7 +34,8 @@ const Hub: React.FC = () => {
     createNewChat = async () => null,
     updateChatMessages = async () => {},
     clearAllChatHistory = async () => {},
-    exportChatData = async () => {}
+    exportChatData = async () => {},
+    loadChat = async () => null
   } = chatHistoryHook;
   
   // Convert sessions to messages for the current implementation
@@ -67,6 +68,7 @@ const Hub: React.FC = () => {
   const [currentSource, setCurrentSource] = useState<'Reddit' | 'Academic' | 'All Sources'>('All Sources');
   const [expandedSources, setExpandedSources] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   useEffect(() => {
@@ -84,11 +86,15 @@ const Hub: React.FC = () => {
   }, [chatLoading]);
 
   useEffect(() => {
+    // Scroll to bottom of messages when new messages arrive
     scrollToBottom();
   }, [chatHistory]);
   
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use a small timeout to ensure DOM is updated
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -252,6 +258,7 @@ const Hub: React.FC = () => {
       setIsLoading(false);
       setLoadingPhase(0);
       setLoadingMessage('Processing your query...');
+      scrollToBottom();
     }
   };
   
@@ -277,6 +284,13 @@ const Hub: React.FC = () => {
 
   const toggleExpandedSources = () => {
     setExpandedSources(!expandedSources);
+  };
+
+  const handleChatSessionClick = (sessionId: string) => {
+    if (sessionId !== currentChat?.id) {
+      loadChat(sessionId);
+      setSidebarOpen(false); // Close sidebar on mobile after selection
+    }
   };
   
   return (
@@ -361,17 +375,11 @@ const Hub: React.FC = () => {
                       className={`p-3 rounded-lg hover:bg-white/10 transition-colors cursor-pointer border border-white/5 ${
                         currentChat?.id === session.id ? 'bg-cyber-green/10 border-cyber-green/30' : 'bg-white/5'
                       }`}
-                      onClick={() => {
-                        // Load this chat session
-                        if (session.id !== currentChat?.id) {
-                          chatHistoryHook.loadChat(session.id);
-                        }
-                        scrollToBottom();
-                      }}
+                      onClick={() => handleChatSessionClick(session.id)}
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium line-clamp-1">{session.title || "New Conversation"}</p>
-                        <Star className="h-3 w-3 text-cyber-green/70 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Star className={`h-3 w-3 ${currentChat?.id === session.id ? 'text-cyber-green' : 'text-cyber-green/70 opacity-0 group-hover:opacity-100'} transition-opacity`} />
                       </div>
                       <p className="text-xs text-cyber-cyan mt-1">
                         {new Date(session.updated_at).toLocaleDateString()} · {session.messages.length} messages
@@ -389,6 +397,7 @@ const Hub: React.FC = () => {
                 onClick={() => {
                   createNewChat();
                   setAllSources([]);
+                  setSidebarOpen(false); // Close sidebar on mobile after creating new chat
                 }}
               >
                 <PlusCircle className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
@@ -465,8 +474,11 @@ const Hub: React.FC = () => {
             </div>
             
             <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden m-0 p-0 data-[state=inactive]:hidden">
-              {/* Messages area */}
-              <ScrollArea className="flex-1 p-4 bg-gradient-to-b from-cyber-dark to-cyber-dark/90">
+              {/* Messages area - Improved scrolling container */}
+              <ScrollArea 
+                ref={scrollAreaRef} 
+                className="flex-1 p-4 bg-gradient-to-b from-cyber-dark to-cyber-dark/90"
+              >
                 {chatHistory.length === 0 && !isLoading ? (
                   <div className="h-full flex flex-col items-center justify-center text-white/40 max-w-md mx-auto text-center p-4">
                     <div className="w-16 h-16 border-2 border-cyber-green/30 rounded-full flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(0,255,170,0.2)]">
@@ -498,7 +510,7 @@ const Hub: React.FC = () => {
                 ) : (
                   <div className="space-y-6 min-h-full pb-4">
                     {chatHistory.map((message, idx) => (
-                      <div key={idx} className="max-w-3xl mx-auto">
+                      <div key={idx} className={`max-w-3xl mx-auto animate-fade-in ${idx > 0 ? 'mt-8' : ''}`}>
                         <div className={cn(
                           "flex items-start mb-2",
                           message.role === 'user' ? "justify-end" : "justify-start"
@@ -510,7 +522,7 @@ const Hub: React.FC = () => {
                           )}
                           
                           <div className={cn(
-                            "rounded-2xl p-4 max-w-[85%] shadow-lg animate-fade-in",
+                            "rounded-2xl p-4 max-w-[85%] shadow-lg",
                             message.role === 'user' 
                               ? "bg-cyber-green/20 backdrop-blur-sm border border-cyber-green/30 text-white ml-auto" 
                               : "bg-white/10 backdrop-blur-sm border border-white/10 text-white"
@@ -531,7 +543,7 @@ const Hub: React.FC = () => {
                         </div>
                         
                         {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
-                          <div className="pl-16 pr-4 mt-2 mb-6">
+                          <div className="pl-16 pr-4 mt-2 mb-6 animate-fade-in" style={{animationDelay: '0.2s'}}>
                             <div className="flex items-center justify-between mb-1">
                               <h4 className="text-xs text-cyber-cyan flex items-center">
                                 <Sparkles className="w-3 h-3 mr-1 text-cyber-green" />
