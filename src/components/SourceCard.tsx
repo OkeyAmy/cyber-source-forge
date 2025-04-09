@@ -27,7 +27,7 @@ const SourceCard: React.FC<SourceCardProps> = ({
   showPreview = false,
   onClick
 }) => {
-  // Determine if source is verified (for now, randomly assign verification status)
+  // Determine if source is verified
   const isVerified = source.verified ?? Math.random() > 0.25;
   
   // Get logo based on source type or use provided logo

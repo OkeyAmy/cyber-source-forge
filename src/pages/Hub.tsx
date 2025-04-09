@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { 
-  Menu, MessageSquare, Share, User,
+  Menu, MessageSquare, Share, User, LogOut,
   Shield, ChevronRight, Send, Sparkles, Clock, Star, PlusCircle
 } from 'lucide-react';
 import { Textarea } from "@/components/ui/textarea";
@@ -18,9 +18,12 @@ import SettingsCenter from '@/components/SettingsCenter';
 import HorizontalSourceScroller from '@/components/HorizontalSourceScroller';
 import LoadingState from '@/components/LoadingState';
 import { useChatHistory } from '@/hooks/useChatHistory';
+import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 const Hub: React.FC = () => {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   
   // Create a temporary mock implementation that matches the expected interface
   const chatHistoryHook = useChatHistory();
@@ -62,6 +65,7 @@ const Hub: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [allSources, setAllSources] = useState<SourceType[]>([]);
   const [currentSource, setCurrentSource] = useState<'Reddit' | 'Academic' | 'All Sources'>('All Sources');
+  const [expandedSources, setExpandedSources] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -117,6 +121,24 @@ const Hub: React.FC = () => {
       title: "Chat exported",
       description: "Your conversation has been downloaded as a text file."
     });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out."
+      });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleSendMessage = async () => {
@@ -252,6 +274,10 @@ const Hub: React.FC = () => {
   const handleSourceChange = (source: 'Reddit' | 'Academic' | 'All Sources') => {
     setCurrentSource(source);
   };
+
+  const toggleExpandedSources = () => {
+    setExpandedSources(!expandedSources);
+  };
   
   return (
     <div className="h-screen flex flex-col bg-cyber-dark text-white overflow-hidden">
@@ -356,7 +382,7 @@ const Hub: React.FC = () => {
               )}
             </ScrollArea>
             
-            <div className="p-4 border-t border-cyber-green/30 bg-cyber-dark/50">
+            <div className="p-4 border-t border-cyber-green/30 bg-cyber-dark/50 flex flex-col space-y-2">
               <Button 
                 variant="outline" 
                 className="w-full justify-start text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent transition-all duration-300 group"
@@ -367,6 +393,16 @@ const Hub: React.FC = () => {
               >
                 <PlusCircle className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
                 New Conversation
+              </Button>
+              
+              {/* Logout Button */}
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-white hover:text-cyber-magenta border-white/20 hover:border-cyber-magenta/40 bg-transparent transition-all duration-300 group"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                Log Out
               </Button>
             </div>
           </div>
@@ -462,50 +498,109 @@ const Hub: React.FC = () => {
                 ) : (
                   <div className="space-y-6 min-h-full pb-4">
                     {chatHistory.map((message, idx) => (
-                      <div key={idx} className={`max-w-3xl ${message.role === 'user' ? 'ml-auto' : 'mr-auto'}`}>
-                        <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div key={idx} className="max-w-3xl mx-auto">
+                        <div className={cn(
+                          "flex items-start mb-2",
+                          message.role === 'user' ? "justify-end" : "justify-start"
+                        )}>
                           {message.role === 'assistant' && (
-                            <div className="w-8 h-8 rounded-full border border-cyber-green/40 flex items-center justify-center mr-2 bg-cyber-dark">
-                              <Shield className="h-4 w-4 text-cyber-green" />
+                            <div className="w-10 h-10 rounded-full border-2 border-cyber-green/40 flex items-center justify-center mr-3 bg-cyber-dark shadow-[0_0_10px_rgba(0,255,170,0.2)]">
+                              <Shield className="h-5 w-5 text-cyber-green" />
                             </div>
                           )}
-                          <div 
-                            className={`rounded-lg p-4 ${
-                              message.role === 'user' 
-                                ? 'bg-white/10 backdrop-blur-sm border border-white/10 text-white shadow-[0_2px_8px_rgba(0,0,0,0.2)]' 
-                                : 'bg-cyber-green/10 backdrop-blur-sm border border-cyber-green/30 text-white shadow-[0_2px_8px_rgba(0,255,170,0.1)]'
-                            } max-w-[85%]`}
-                          >
-                            <div className="text-sm leading-relaxed">{message.content}</div>
+                          
+                          <div className={cn(
+                            "rounded-2xl p-4 max-w-[85%] shadow-lg animate-fade-in",
+                            message.role === 'user' 
+                              ? "bg-cyber-green/20 backdrop-blur-sm border border-cyber-green/30 text-white ml-auto" 
+                              : "bg-white/10 backdrop-blur-sm border border-white/10 text-white"
+                          )}>
+                            <div className={cn(
+                              "text-sm leading-relaxed whitespace-pre-wrap",
+                              message.role === 'user' ? "text-cyber-green" : "text-white"
+                            )}>
+                              {message.content}
+                            </div>
                           </div>
+                          
                           {message.role === 'user' && (
-                            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center ml-2 border border-white/20">
-                              <User className="h-4 w-4 text-white/70" />
+                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center ml-3 border-2 border-white/20">
+                              <User className="h-5 w-5 text-white/70" />
                             </div>
                           )}
                         </div>
                         
                         {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
-                          <div className="mt-3 ml-10">
-                            <HorizontalSourceScroller 
-                              sources={message.sources.map(source => ({
-                                num: Math.floor(Math.random() * 1000),
-                                title: source.title,
-                                link: source.url,
-                                source: source.source as "Reddit" | "Twitter" | "Web" | "News" | "Academic" || "Web",
-                                preview: "Source preview would go here...",
-                                verified: source.verified
-                              }))} 
-                              onSourceClick={handleSourceClick}
-                            />
+                          <div className="pl-16 pr-4 mt-2 mb-6">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="text-xs text-cyber-cyan flex items-center">
+                                <Sparkles className="w-3 h-3 mr-1 text-cyber-green" />
+                                <span>Sources ({message.sources.length})</span>
+                              </h4>
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="text-xs text-cyber-cyan p-0 h-auto"
+                                onClick={toggleExpandedSources}
+                              >
+                                {expandedSources ? "Show less" : "View all"}
+                              </Button>
+                            </div>
+                            
+                            {expandedSources ? (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 animate-fade-in">
+                                {message.sources.map((source, sIdx) => (
+                                  <div 
+                                    key={sIdx}
+                                    className={`p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-[0_0_15px_rgba(0,255,170,0.2)] ${
+                                      source.verified ? 'border-cyber-green/30 bg-cyber-green/5' : 'border-cyber-magenta/30 bg-cyber-magenta/5'
+                                    }`}
+                                    onClick={() => window.open(source.url, '_blank')}
+                                  >
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className={`text-xs py-0.5 px-2 rounded-full ${
+                                        source.verified ? 'bg-cyber-green/20 text-cyber-green' : 'bg-cyber-magenta/20 text-cyber-magenta'
+                                      }`}>
+                                        {source.source || 'Web'}
+                                      </span>
+                                      {source.verified ? (
+                                        <Shield className="h-3 w-3 text-cyber-green" />
+                                      ) : (
+                                        <Shield className="h-3 w-3 text-cyber-magenta" />
+                                      )}
+                                    </div>
+                                    <h5 className="text-sm font-medium text-white/90 mb-1">{source.title}</h5>
+                                    <a 
+                                      href={source.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-cyber-cyan hover:underline block truncate"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >{source.url}</a>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <HorizontalSourceScroller 
+                                sources={message.sources.map(source => ({
+                                  num: Math.floor(Math.random() * 1000),
+                                  title: source.title,
+                                  link: source.url,
+                                  source: source.source as "Reddit" | "Twitter" | "Web" | "News" | "Academic" || "Web",
+                                  preview: "Preview of the source content...",
+                                  verified: source.verified
+                                }))} 
+                                onSourceClick={handleSourceClick}
+                              />
+                            )}
                           </div>
                         )}
                       </div>
                     ))}
                     
                     {isLoading && (
-                      <div className="max-w-3xl mr-auto ml-10">
-                        <div className="p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm">
+                      <div className="max-w-3xl mx-auto pl-16 animate-fade-in">
+                        <div className="p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm max-w-[85%]">
                           <LoadingState message={loadingMessage} phase={loadingPhase} />
                         </div>
                       </div>

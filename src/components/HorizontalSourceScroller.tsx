@@ -63,19 +63,16 @@ const HorizontalSourceScroller: React.FC<HorizontalSourceScrollerProps> = ({
         className="flex overflow-x-auto gap-3 pb-2 hide-scrollbar"
         style={{ scrollBehavior: 'smooth', msOverflowStyle: 'none', scrollbarWidth: 'none' }}
       >
-        <style jsx>{`
-          .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-          }
-        `}</style>
+        <style>
+          {`.hide-scrollbar::-webkit-scrollbar { display: none; }`}
+        </style>
         {sources.map((source, index) => (
           <SourceCard 
             key={index} 
             source={source}
             size="small"
             onClick={() => onSourceClick?.(source)}
-            className="flex-shrink-0 animate-fade-in"
-            style={{ animationDelay: `${index * 100}ms` }}
+            className={`flex-shrink-0 animate-fade-in`}
           />
         ))}
       </div>
