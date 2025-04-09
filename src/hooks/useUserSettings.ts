@@ -24,6 +24,20 @@ export type UserSettings = {
   updated_at: string;
 };
 
+// Default settings to use when settings are null
+const defaultSettings: Partial<UserSettings> = {
+  display_name: 'Researcher',
+  email: '',
+  search_preferences: {
+    focusArea: 'Research',
+    anonymousMode: false,
+  },
+  privacy_settings: {
+    saveHistory: true,
+    dataCollection: true,
+  }
+};
+
 export const useUserSettings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -34,6 +48,8 @@ export const useUserSettings = () => {
   const fetchSettings = async () => {
     if (!user) {
       setIsLoading(false);
+      // Initialize with default settings even when user is not logged in
+      setSettings(defaultSettings as UserSettings);
       return;
     }
 
@@ -75,6 +91,8 @@ export const useUserSettings = () => {
     } catch (err) {
       console.error('Error fetching user settings:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch user settings'));
+      // Use default settings when fetch fails
+      setSettings(defaultSettings as UserSettings);
     } finally {
       setIsLoading(false);
     }
@@ -125,8 +143,20 @@ export const useUserSettings = () => {
     fetchSettings();
   }, [user]);
 
+  // Get settings with defaults for null values
+  const getSettingsWithDefaults = () => {
+    if (!settings) {
+      return defaultSettings;
+    }
+    return {
+      ...settings,
+      search_preferences: settings.search_preferences || defaultSettings.search_preferences,
+      privacy_settings: settings.privacy_settings || defaultSettings.privacy_settings
+    };
+  };
+
   return {
-    settings,
+    settings: getSettingsWithDefaults(),
     isLoading,
     error,
     updateSettings,

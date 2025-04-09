@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { 
   ChevronRight, Send, Trash2, PlusCircle, X, 
-  Menu, MessageSquare, Settings, AlertCircle 
+  Menu, MessageSquare, Settings, AlertCircle, Shield
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,8 +43,21 @@ interface ProcessQueryResponse {
 }
 
 const Hub: React.FC = () => {
-  const { chatHistory, addMessage, clearChatHistory } = useChatHistory();
-  const { settings } = useUserSettings();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get chat history from hook with safe fallbacks
+  const { 
+    chatHistory = [], 
+    addMessage = () => {}, 
+    clearChatHistory = () => {},
+    // Add other methods with defaults 
+  } = useChatHistory();
+  
+  // Get user settings with safe fallbacks
+  const { settings, isLoading: settingsLoading } = useUserSettings();
+  const userPreferences = settings?.search_preferences || { focusArea: 'Research', anonymousMode: false };
+  
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -53,11 +66,9 @@ const Hub: React.FC = () => {
   const [loadingPhase, setLoadingPhase] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [allSources, setAllSources] = useState<SourceType[]>([]);
-  const [focusArea, setFocusArea] = useState<string>("All");
+  const [focusArea, setFocusArea] = useState<string>(userPreferences?.focusArea || "All");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const location = useLocation();
-  const navigate = useNavigate();
   
   useEffect(() => {
     // Check for a pending query in session storage (coming from landing page)
@@ -74,6 +85,13 @@ const Hub: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory]);
+  
+  // Update focusArea whenever user preferences change
+  useEffect(() => {
+    if (settings?.search_preferences?.focusArea) {
+      setFocusArea(settings.search_preferences.focusArea);
+    }
+  }, [settings]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -109,7 +127,10 @@ const Hub: React.FC = () => {
       role: 'user',
       content: inputValue
     };
-    addMessage(userMessage);
+    
+    if (typeof addMessage === 'function') {
+      addMessage(userMessage);
+    }
     
     // Clear input and set loading state
     setInputValue('');
@@ -179,7 +200,9 @@ const Hub: React.FC = () => {
         sources: convertSources(data.response.sources)
       } as ChatMessage;
       
-      addMessage(assistantMessage);
+      if (typeof addMessage === 'function') {
+        addMessage(assistantMessage);
+      }
       
     } catch (err) {
       console.error('Error processing query:', err);
@@ -192,7 +215,9 @@ const Hub: React.FC = () => {
         sources: []
       } as ChatMessage;
       
-      addMessage(errorMessage);
+      if (typeof addMessage === 'function') {
+        addMessage(errorMessage);
+      }
     } finally {
       setIsLoading(false);
       setLoadingPhase(0);
@@ -207,7 +232,9 @@ const Hub: React.FC = () => {
   
   const handleClearChat = () => {
     if (window.confirm('Are you sure you want to clear the chat history?')) {
-      clearChatHistory();
+      if (typeof clearChatHistory === 'function') {
+        clearChatHistory();
+      }
       setAllSources([]);
       toast({
         title: "Chat cleared",
@@ -306,7 +333,9 @@ const Hub: React.FC = () => {
                 variant="outline" 
                 className="w-full justify-start text-white hover:text-cyber-green border-white/20 hover:border-cyber-green/40 bg-transparent"
                 onClick={() => {
-                  clearChatHistory();
+                  if (typeof clearChatHistory === 'function') {
+                    clearChatHistory();
+                  }
                   setAllSources([]);
                   navigate('/hub');
                 }}
@@ -329,8 +358,8 @@ const Hub: React.FC = () => {
               
               <div className="flex items-center">
                 <FocusAreaSelector 
-                  value={focusArea}
-                  onChange={setFocusArea}
+                  selected={focusArea as 'Research' | 'Social' | 'All'}
+                  onChange={setFocusArea as (area: 'Research' | 'Social' | 'All') => void}
                 />
               </div>
             </div>
@@ -402,7 +431,28 @@ const Hub: React.FC = () => {
                     
                     {isLoading && (
                       <div className="max-w-3xl mr-auto">
-                        <LoadingState message={loadingMessage} phase={loadingPhase} />
+                        <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                          <div className="flex items-center gap-3">
+                            <div className="animate-pulse">
+                              <div className="w-6 h-6 bg-cyber-green/20 rounded-full flex items-center justify-center">
+                                <div className="w-3 h-3 bg-cyber-green rounded-full"></div>
+                              </div>
+                            </div>
+                            <p className="text-sm text-white/70">{loadingMessage}</p>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {loadingPhase >= 1 && (
+                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-cyber-green/40 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                              </div>
+                            )}
+                            {loadingPhase >= 2 && (
+                              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-cyber-green/60 rounded-full animate-pulse" style={{width: '30%'}}></div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
                     
@@ -448,7 +498,7 @@ const Hub: React.FC = () => {
                       Press <kbd className="px-1 py-0.5 rounded bg-white/10 text-xs">Enter</kbd> to send, <kbd className="px-1 py-0.5 rounded bg-white/10 text-xs">Shift+Enter</kbd> for new line
                     </div>
                     <div>
-                      {settings.anonymousMode ? 'Anonymous Mode On' : 'Anonymous Mode Off'}
+                      {userPreferences?.anonymousMode ? 'Anonymous Mode On' : 'Anonymous Mode Off'}
                     </div>
                   </div>
                 </div>
@@ -470,7 +520,7 @@ const Hub: React.FC = () => {
                       source={source}
                       size="large"
                       showPreview={true}
-                      onClick={() => handleSourceClick(source)}
+                      onClick={handleSourceClick}
                     />
                   ))}
                 </div>
