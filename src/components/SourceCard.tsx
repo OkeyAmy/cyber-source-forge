@@ -1,128 +1,135 @@
-
 import React from 'react';
-import { ExternalLink, Shield, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SourceType } from '@/types/chatTypes';
 
 interface SourceCardProps {
-  source: SourceType;
-  className?: string;
-  size?: 'small' | 'medium' | 'large';
-  showPreview?: boolean;
-  onClick?: (source: SourceType) => void;
+  sourceIndex: number;
+  title: string;
+  link: string;
+  source: string;
+  preview: string;
+  logo?: string;
+  isActive?: boolean;
+  onClick?: () => void;
 }
 
-const sourceIcons: Record<string, string> = {
-  'Reddit': '/lovable-uploads/7fbbde5b-4d67-4cba-8762-c7ec5457a6ec.png',
-  'Twitter': '/lovable-uploads/9c56662f-b78c-4cde-a963-e4470e1f7efd.png',
-  'Web': '/lovable-uploads/30cdaa08-bba2-4a5e-a1fa-efb78b0b978b.png',
-  'News': '/lovable-uploads/65485ff4-54bb-4524-908c-16466cdd44c0.png',
-  'Academic': '/lovable-uploads/65485ff4-54bb-4524-908c-16466cdd44c0.png',
-};
-
-const SourceCard: React.FC<SourceCardProps> = ({ 
-  source, 
-  className,
-  size = 'medium',
-  showPreview = false,
-  onClick
+const SourceCard: React.FC<SourceCardProps> = ({
+  sourceIndex,
+  title,
+  link,
+  source,
+  preview,
+  logo,
+  isActive = false,
+  onClick,
 }) => {
-  // Determine if source is verified
-  const isVerified = source.verified ?? Math.random() > 0.25;
+  // Truncate title and preview for better display
+  const truncatedTitle = title.length > 80 ? `${title.substring(0, 80)}...` : title;
+  const truncatedPreview = preview.length > 240 ? `${preview.substring(0, 240)}...` : preview;
   
-  // Get logo based on source type or use provided logo
-  const logoUrl = source.logo || sourceIcons[source.source] || null;
-  
-  const handleClick = () => {
-    if (onClick) onClick(source);
+  // Generate source badge color based on source type
+  const getSourceBadgeColor = (sourceType: string) => {
+    switch (sourceType.toLowerCase()) {
+      case 'reddit':
+        return 'bg-orange-600/80 border-orange-500/30';
+      case 'twitter':
+        return 'bg-blue-500/80 border-blue-400/30';
+      case 'web':
+        return 'bg-green-600/80 border-green-500/30';
+      case 'news':
+        return 'bg-red-600/80 border-red-500/30';
+      case 'academic':
+        return 'bg-purple-600/80 border-purple-500/30';
+      default:
+        return 'bg-cyber-green/80 border-cyber-green/30';
+    }
   };
   
+  // Handle card click with keyboard support
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick && onClick();
+    }
+  };
+  
+  // Handle source link click and stop propagation
+  const handleLinkClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <div 
+    <div
       className={cn(
-        "relative group cursor-pointer transition-all duration-300 rounded-lg border overflow-hidden",
-        isVerified 
-          ? "border-cyber-green/30 hover:border-cyber-green/80" 
-          : "border-cyber-magenta/30 hover:border-cyber-magenta/50",
-        size === 'small' && "p-2 min-w-[200px] max-w-[200px]",
-        size === 'medium' && "p-3 min-w-[280px] max-w-[280px]",
-        size === 'large' && "p-4 w-full",
-        "bg-cyber-dark/60 backdrop-blur-md hover:bg-cyber-dark/80 shadow-[0_2px_12px_rgba(0,0,0,0.15)]",
-        "hover:shadow-[0_4px_20px_rgba(0,255,170,0.15)]",
-        className
+        "relative group flex flex-col rounded-md overflow-hidden border transition-all duration-300",
+        "bg-black/60 backdrop-blur-sm hover:bg-black/80",
+        "border-white/5 hover:border-cyber-accent/50",
+        isActive ? "ring-1 ring-cyber-accent shadow-glow-sm" : "shadow-md hover:shadow-glow-xs",
+        "cursor-pointer"
       )}
-      onClick={handleClick}
+      onClick={onClick}
+      onKeyDown={handleCardKeyDown}
+      tabIndex={0}
+      role="button"
+      aria-pressed={isActive}
+      aria-label={`Source ${sourceIndex}: ${title}`}
     >
-      {/* Source Badge */}
-      <div className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
-        isVerified 
-          ? 'bg-cyber-green/20 text-cyber-green border border-cyber-green/40'
-          : 'bg-cyber-magenta/20 text-cyber-magenta border border-cyber-magenta/40'
-      }`}>
-        {isVerified ? (
-          <>
-            <Shield className="w-3 h-3 inline-block mr-1" />
-            <span>Verified</span>
-          </>
-        ) : (
-          <>
-            <AlertTriangle className="w-3 h-3 inline-block mr-1" />
-            <span>Unverified</span>
-          </>
-        )}
-      </div>
-      
-      {/* Source Type Badge */}
-      <div className="flex items-center mb-3">
-        {logoUrl && (
-          <div className="h-6 w-6 mr-2 bg-white/10 rounded-full p-1 flex items-center justify-center">
-            <img src={logoUrl} alt={source.source} className="h-full w-full object-contain" />
+      {/* Card Header */}
+      <div className="flex items-center justify-between p-3 border-b border-white/5 bg-gradient-to-r from-black/60 to-transparent">
+        {/* Source number and type */}
+        <div className="flex items-center gap-2">
+          {/* Source number indicator */}
+          <div className="flex items-center justify-center w-6 h-6 rounded-full bg-black/60 border border-white/10 text-xs font-mono">
+            {sourceIndex}
           </div>
-        )}
-        <span className={`text-xs py-0.5 px-2 rounded-full bg-white/10 border border-white/10 text-white`}>
-          {source.source}
-        </span>
+          
+          {/* Source badge */}
+          <div className={cn(
+            "text-xs px-2 py-0.5 rounded-sm font-medium border",
+            getSourceBadgeColor(source)
+          )}>
+            {source}
+          </div>
+        </div>
+        
+        {/* External link button */}
+        <a 
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-1.5 rounded-full bg-black/40 text-white/70 hover:text-white hover:bg-cyber-accent/20 transition-colors"
+          onClick={handleLinkClick}
+          aria-label={`Open ${title} in new tab`}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
       </div>
       
-      {/* Title */}
-      <h3 className="text-sm font-medium text-white mb-2 line-clamp-2 group-hover:text-cyber-green transition-colors">{source.title}</h3>
-      
-      {/* Link */}
-      <a 
-        href={source.link} 
-        target="_blank" 
-        rel="noopener noreferrer" 
-        className="text-xs text-cyber-cyan hover:underline flex items-center mb-3 hover:text-cyber-green transition-colors duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="truncate max-w-[180px]">{source.link}</span>
-        <ExternalLink className="w-3 h-3 ml-1 flex-shrink-0" />
-      </a>
-      
-      {/* Preview */}
-      {showPreview && (
-        <div className="mt-1 mb-2">
-          <p className="text-xs text-white/70 line-clamp-3">{source.preview}</p>
+      {/* Card Content */}
+      <div className="flex-1 p-3 flex flex-col gap-3">
+        {/* Title with logo if available */}
+        <div className="flex items-start gap-2">
+          {logo && (
+            <img 
+              src={logo} 
+              alt="" 
+              className="w-4 h-4 mt-1 rounded-full object-cover" 
+              loading="lazy"
+            />
+          )}
+          <h3 className="text-sm font-medium text-white/90 leading-tight">
+            {truncatedTitle}
+          </h3>
         </div>
-      )}
-      
-      {/* Preview Images */}
-      {showPreview && source.images && source.images.length > 0 && (
-        <div className="mt-3 h-24 overflow-hidden rounded group-hover:opacity-90 transition-opacity">
-          <img 
-            src={source.images[0]} 
-            alt="Preview" 
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
-        </div>
-      )}
-      
-      {/* View More Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-4">
-        <span className="text-xs text-cyber-green px-3 py-1 rounded-full border border-cyber-green/40 bg-cyber-dark/50 backdrop-blur-sm">
-          View Source
-        </span>
+        
+        {/* Preview text */}
+        <p className="text-xs text-white/70 leading-relaxed">
+          {truncatedPreview}
+        </p>
       </div>
+      
+      {/* Card hover effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyber-accent/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none"></div>
     </div>
   );
 };

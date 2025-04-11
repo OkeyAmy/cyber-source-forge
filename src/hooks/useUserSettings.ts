@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +19,7 @@ export type UserSettings = {
   email: string;
   search_preferences: SearchPreferences;
   privacy_settings: PrivacySettings;
+  theme?: 'system' | 'dark' | 'light';
   created_at: string;
   updated_at: string;
 };
@@ -35,7 +35,8 @@ const defaultSettings: Partial<UserSettings> = {
   privacy_settings: {
     saveHistory: true,
     dataCollection: true,
-  }
+  },
+  theme: 'dark'
 };
 
 export const useUserSettings = () => {

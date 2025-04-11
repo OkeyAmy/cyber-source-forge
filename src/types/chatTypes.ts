@@ -1,9 +1,12 @@
-
 export interface SourceReference {
-  url: string;
+  num: number;
   title: string;
+  link: string;
+  source: string;
+  preview: string;
+  images?: string[];
+  logo?: string;
   verified?: boolean;
-  source?: string;
 }
 
 export interface ChatMessage {

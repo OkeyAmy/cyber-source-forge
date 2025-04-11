@@ -1,60 +1,40 @@
+import { SourceType, ChatMessage, ChatSession } from '@/types/chatTypes';
 
-import { SourceType } from '@/components/SourceCard';
-
-type ChatMessage = {
-  role: 'user' | 'assistant';
-  content: string;
-  sources?: SourceType[];
-};
-
-type ChatSession = {
-  id: string;
-  title: string;
-  updatedAt: string;
-  messages?: ChatMessage[];
-};
-
-// This is a mock implementation that simulates API calls
-// In production, this would be replaced with actual fetch calls
-
-const API_BASE_URL = 'https://source-finder-hoic.onrender.com';
-
-// Simulate a delay for API calls
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Generate random sources
-const generateRandomSources = (count: number, types?: string[]): SourceType[] => {
-  const sourceTypes = types || ['Reddit', 'Twitter', 'Web', 'News', 'Academic'];
-  const sources: SourceType[] = [];
-  
-  for (let i = 0; i < count; i++) {
-    const sourceType = sourceTypes[Math.floor(Math.random() * sourceTypes.length)] as "Reddit" | "Twitter" | "Web" | "News" | "Academic";
-    sources.push({
-      num: i + 1,
-      title: `Source ${i + 1}: ${sourceType} information about the topic`,
-      link: `https://example.com/${sourceType.toLowerCase()}/article-${i + 1}`,
-      source: sourceType,
-      preview: `This is a preview of the content from this ${sourceType} source. It provides valuable information related to the query that was asked. The content is relevant and has been analyzed by our AI systems.`,
-      images: Math.random() > 0.5 ? [`https://picsum.photos/seed/${i}/300/200`] : undefined,
-      verified: Math.random() > 0.25
-    });
-  }
-  
-  return sources;
-};
-
-// Mock session ID generation
-const generateSessionId = () => {
-  return 'sess_' + Math.random().toString(36).substring(2, 15);
-};
+// API Base URL
+const API_BASE_URL = 'https://source-finder-1.onrender.com';
 
 // Store current session in memory
 let currentSession: { id: string | null } = { id: null };
 
+// Helper function to handle API responses
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.detail || `API error: ${response.status}`);
+  }
+  return response.json();
+};
+
+// Generic fetch function with error handling
+const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+    return await handleResponse(response);
+  } catch (error) {
+    console.error(`API error for ${endpoint}:`, error);
+    throw error;
+  }
+};
+
 export const api = {
-  processQuery: async (query: string, focusArea: 'All' | 'Research' | 'Social' = 'All') => {
-    await delay(1500);
-    
+  processQuery: async (query: string, sessionId?: string, focusArea: 'All' | 'Research' | 'Social' = 'All') => {
+    // Convert focusArea to actual filter sources
     let sourcesToUse: string[] = [];
     if (focusArea === 'All') {
       sourcesToUse = ['Reddit', 'Twitter', 'Web', 'News', 'Academic'];
@@ -64,97 +44,212 @@ export const api = {
       sourcesToUse = ['Reddit', 'Twitter', 'Web'];
     }
     
-    const sources = generateRandomSources(Math.floor(Math.random() * 3) + 2, sourcesToUse);
-    
-    return {
-      content: `Here's a response about "${query}" based on the ${focusArea} focus area. I've found ${sources.length} relevant sources to support this information.`,
-      sources
-    };
-  },
-  
-  getSources: async (sessionId?: string) => {
-    await delay(1000);
-    return generateRandomSources(Math.floor(Math.random() * 8) + 5);
-  },
-  
-  getChats: async (): Promise<ChatSession[]> => {
-    await delay(1000);
-    return Array(5).fill(0).map((_, i) => ({
-      id: `chat_${i}`,
-      title: `Query about topic ${i + 1}`,
-      updatedAt: new Date(Date.now() - i * 86400000).toISOString()
-    }));
-  },
-  
-  createChat: async (query: string): Promise<ChatSession> => {
-    await delay(1000);
-    const sessionId = generateSessionId();
-    currentSession.id = sessionId;
-    
-    // Derive title from query (limited characters)
-    let title = query;
-    if (title.length > 30) {
-      title = title.substring(0, 27) + '...';
-    }
-    
-    return {
-      id: sessionId,
-      title,
-      updatedAt: new Date().toISOString(),
-      messages: [
-        { role: 'user', content: query }
-      ]
-    };
-  },
-  
-  getChatDetails: async (sessionId: string): Promise<ChatSession> => {
-    await delay(1000);
-    // Generate some random messages
-    const messageCount = Math.floor(Math.random() * 6) + 2;
-    const messages: ChatMessage[] = [];
-    
-    for (let i = 0; i < messageCount; i++) {
-      if (i % 2 === 0) {
-        messages.push({
-          role: 'user',
-          content: `This is user message ${i/2 + 1}`
-        });
-      } else {
-        const sources = Math.random() > 0.3 ? generateRandomSources(Math.floor(Math.random() * 3) + 1) : undefined;
-        messages.push({
-          role: 'assistant',
-          content: `This is assistant response ${Math.floor(i/2) + 1}`,
-          sources
-        });
+    // Format the request body according to the API documentation
+    const requestBody = {
+      query,
+      session_id: sessionId,
+      filters: {
+        Sources: sourcesToUse // Match the exact case in the API documentation
       }
-    }
-    
-    return {
-      id: sessionId,
-      title: `Chat session ${sessionId}`,
-      updatedAt: new Date().toISOString(),
-      messages
     };
+
+    try {
+      const data = await fetchAPI('/api/process-query', {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+      });
+      
+      // Store session ID if it's returned and we don't have one
+      if (data.session_id && !currentSession.id) {
+        currentSession.id = data.session_id;
+      }
+
+      // Ensure data is formatted correctly for our frontend
+      // According to API documentation, the response should have structure:
+      // { response: { content: string, sources: SourceType[] } }
+      let content = '';
+      let sources: SourceType[] = [];
+      
+      if (typeof data.response === 'string') {
+        content = data.response;
+        sources = data.sources || [];
+      } else if (typeof data.response === 'object') {
+        content = data.response.content || '';
+        sources = data.response.sources || [];
+      }
+      
+      // Map sources to our format and ensure they have all required properties
+      sources = sources.map(source => ({
+        num: source.num || 0,
+        title: source.title || 'Unknown Source',
+        link: source.link || '#',
+        source: (source.source || 'Web') as "Reddit" | "Twitter" | "Web" | "News" | "Academic",
+        preview: source.preview || `Preview content from ${source.title || 'this source'}...`,
+        images: source.images || [],
+        logo: source.logo || null,
+        verified: source.verified !== undefined ? source.verified : Math.random() > 0.25
+      }));
+    
+      return {
+        content,
+        sources
+      };
+    } catch (error) {
+      console.error('Error processing query:', error);
+      throw error;
+    }
+  },
+  
+  getSources: async (sessionId?: string): Promise<SourceType[]> => {
+    try {
+      const endpoint = sessionId 
+        ? `/api/sources?session_id=${sessionId}` 
+        : '/api/sources';
+      
+      const data = await fetchAPI(endpoint);
+      
+      if (data && Array.isArray(data.sources)) {
+        // Map response to our SourceType format
+        return data.sources.map((source: any) => ({
+          num: source.num || 0,
+          title: source.title || 'Unknown Source',
+          link: source.link || '#',
+          source: (source.source || 'Web') as "Reddit" | "Twitter" | "Web" | "News" | "Academic",
+          preview: source.preview || `Preview content from ${source.title || 'this source'}...`,
+          images: source.images || [],
+          logo: source.logo || null,
+          verified: source.verified !== undefined ? source.verified : Math.random() > 0.25 // Maintain blockchain vibe with some randomness
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching sources:', error);
+      return [];
+    }
   },
   
   getCurrentSession: async (): Promise<{ session_id: string | null, title?: string, updated_at?: string }> => {
-    await delay(500);
-    if (!currentSession.id) {
+    try {
+      const data = await fetchAPI('/api/current-session');
+      
+      // Update current session if we get a new one
+      if (data.session_id) {
+        currentSession.id = data.session_id;
+      }
+      
+      return {
+        session_id: data.session_id,
+        title: data.title,
+        updated_at: data.updated_at
+      };
+    } catch (error) {
+      console.error('Error getting current session:', error);
       return { session_id: null };
     }
-    
+  },
+  
+  getChats: async (): Promise<ChatSession[]> => {
+    try {
+      const data = await fetchAPI('/api/chats');
+      
+      return Array.isArray(data.chats) 
+        ? data.chats.map((chat: any) => ({
+            id: chat.id || `chat_${Math.random().toString(36).substring(2, 15)}`,
+            title: chat.title || 'Unnamed Chat',
+            updated_at: chat.updatedAt || new Date().toISOString(),
+            created_at: chat.created_at || new Date().toISOString(),
+            messages: []
+          }))
+        : [];
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      return [];
+    }
+  },
+  
+  createChat: async (query?: string, refresh: boolean = false): Promise<ChatSession> => {
+    try {
+      const endpoint = refresh ? '/api/chats?refresh=true' : '/api/chats';
+      
+      const requestBody: any = {};
+      if (query) {
+        requestBody.query = query;
+      }
+      
+      const data = await fetchAPI(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(requestBody),
+      });
+      
+      // If we got a session_id back, update our current session
+      if (data.session_id) {
+        currentSession.id = data.session_id;
+      }
+      
+      // Extract chat session data from response
+      const chatSession: ChatSession = {
+        id: data.session_id || `chat_${Math.random().toString(36).substring(2, 15)}`,
+        title: query?.substring(0, 30) || 'New Chat',
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        messages: query ? [{ role: 'user', content: query }] : []
+      };
+      
+      return chatSession;
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      // Return a fallback chat session to avoid UI breaking
     return {
-      session_id: currentSession.id,
-      title: `Current active session`,
-      updated_at: new Date().toISOString()
-    };
+        id: `chat_${Math.random().toString(36).substring(2, 15)}`,
+        title: query?.substring(0, 30) || 'New Chat',
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        messages: query ? [{ role: 'user', content: query }] : []
+      };
+    }
+  },
+  
+  getChatDetails: async (sessionId: string): Promise<ChatSession> => {
+    try {
+      const data = await fetchAPI(`/api/chats/${sessionId}`);
+      
+      // Format to match our frontend's expected structure
+      return {
+        id: sessionId,
+        title: data.title || `Chat session ${sessionId}`,
+        updated_at: data.updated_at || new Date().toISOString(),
+        created_at: data.created_at || new Date().toISOString(),
+        messages: Array.isArray(data.messages) ? data.messages : []
+      };
+    } catch (error) {
+      console.error('Error fetching chat details:', error);
+      // Return a minimal chat session to avoid UI breaking
+    return {
+      id: sessionId,
+      title: `Chat session ${sessionId}`,
+        updated_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        messages: []
+      };
+    }
   },
   
   deleteChat: async (sessionId: string): Promise<boolean> => {
-    await delay(800);
+    try {
+      await fetchAPI(`/api/chats/${sessionId}`, {
+        method: 'DELETE',
+      });
+      
+      // Clear current session if it was the one deleted
     if (currentSession.id === sessionId) {
       currentSession.id = null;
     }
+      
     return true;
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      return false;
+    }
   }
 };

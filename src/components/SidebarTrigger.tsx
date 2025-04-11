@@ -1,58 +1,56 @@
-
-import React from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import * as React from 'react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 
-type SidebarTriggerProps = {
-  isCollapsed?: boolean;
-  isOpen?: boolean;
+interface SidebarTriggerProps {
+  isOpen: boolean;
   onClick: () => void;
-  position?: 'left' | 'right';
   className?: string;
-};
+}
 
-const SidebarTrigger: React.FC<SidebarTriggerProps> = ({ 
-  isCollapsed, 
+const SidebarTrigger: React.FC<SidebarTriggerProps> = ({
   isOpen,
-  onClick, 
-  position = 'left',
-  className 
+  onClick,
+  className
 }) => {
-  const isMobile = useIsMobile();
-  
-  // Support both isCollapsed and isOpen props for backwards compatibility
-  const collapsed = isCollapsed !== undefined ? isCollapsed : !isOpen;
-  
   return (
-    <button 
+    <button
+      onClick={onClick}
       className={cn(
-        "flex items-center justify-center transition-all duration-300 p-2 rounded-full border hover:bg-cyber-green/10 z-40",
-        collapsed 
-          ? "border-white/20 hover:border-cyber-green/40" 
-          : "border-cyber-green/30 bg-cyber-green/10 hover:border-cyber-green/60",
-        position === 'left' 
-          ? collapsed ? 'left-4 md:left-6' : 'left-[16rem] md:left-[16.5rem]' 
-          : collapsed ? 'right-4 md:right-6' : 'right-[18rem] md:right-[18.5rem]',
-        isMobile ? (
-          collapsed ? 'fixed bottom-16' : 'hidden'
-        ) : (
-          'fixed top-20'
-        ),
+        "flex items-center justify-center rounded-lg p-2 transition-all duration-300",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-cyber-accent/50 focus-visible:ring-offset-1",
+        "hover:bg-white/5 active:bg-white/10",
+        isOpen ? "bg-black/30" : "bg-transparent",
         className
       )}
-      onClick={onClick}
-      aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
+      aria-expanded={isOpen}
+      aria-controls="sidebar"
     >
-      {position === 'left' ? (
-        collapsed ? 
-          <ChevronRight className="text-cyber-green w-4 h-4 md:w-5 md:h-5" /> : 
-          <ChevronLeft className="text-cyber-green w-4 h-4 md:w-5 md:h-5" />
-      ) : (
-        collapsed ? 
-          <ChevronLeft className="text-cyber-green w-4 h-4 md:w-5 md:h-5" /> : 
-          <ChevronRight className="text-cyber-green w-4 h-4 md:w-5 md:h-5" />
-      )}
+      <div className="relative w-5 h-5">
+        {/* Animated menu icon */}
+        <span 
+          className={cn(
+            "absolute block h-0.5 bg-white/80 rounded-full w-5 transition-all duration-300",
+            isOpen ? "rotate-45 top-2.5" : "top-1"
+          )}
+        />
+        <span 
+          className={cn(
+            "absolute block h-0.5 bg-white/80 rounded-full w-3 top-2.5 transition-all duration-300",
+            isOpen ? "opacity-0 -translate-x-2" : "opacity-100"
+          )}
+        />
+        <span 
+          className={cn(
+            "absolute block h-0.5 bg-white/80 rounded-full transition-all duration-300",
+            isOpen ? "rotate-[-45deg] top-2.5 w-5" : "w-4 top-4"
+          )}
+        />
+      </div>
+      
+      {/* Visual indicator for sidebar state */}
+      <span className="sr-only">{isOpen ? "Close" : "Open"} sidebar</span>
     </button>
   );
 };
