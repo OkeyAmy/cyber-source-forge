@@ -1,0 +1,463 @@
+/* ChatScope theme overrides for blockchain design */
+/* The main import is now handled directly in the Hub.tsx component */
+
+/* Fix chat container height and scroll handling */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0a0e17;
+}
+
+/* Container fills height */
+.cs-main-container,
+.cs-chat-container {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Main container customizations with improved blockchain aesthetic */
+.cs-main-container {
+  background-color: #0a0e17 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+.cs-main-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, rgba(46, 166, 220, 0.02) 1px, transparent 1px),
+    linear-gradient(rgba(46, 166, 220, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Chat container customizations */
+.cs-chat-container {
+  background-color: transparent !important;
+  flex: 1 !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Message list customizations with improved scrolling */
+.cs-message-list {
+  background: #0a0e17 !important;
+  padding: 1rem !important;
+  height: auto !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(46, 166, 220, 0.3) rgba(0, 0, 0, 0.1) !important;
+  will-change: transform !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+}
+
+/* Enhance scrollbar for better visibility */
+.cs-message-list::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.cs-message-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+.cs-message-list::-webkit-scrollbar-thumb {
+  background: rgba(46, 166, 220, 0.4) !important;
+  border-radius: 2px !important;
+}
+
+/* Conversation header with blockchain styling */
+.cs-conversation-header {
+  background-color: #0a0e17 !important;
+  border-bottom: 1px solid rgba(46, 166, 220, 0.2) !important;
+  padding: 0.75rem 1rem !important;
+  z-index: 10 !important;
+}
+
+/* Message customizations with blockchain visual design */
+.cs-message {
+  margin-bottom: 1.5rem !important;
+  max-width: 85% !important;
+  position: relative !important;
+  animation: fadeIn 0.3s ease-out forwards !important;
+}
+
+/* User messages - Make them stand out with blockchain blue */
+.cs-message--outgoing .cs-message__content {
+  background-color: rgba(46, 166, 220, 0.15) !important;
+  border: 1px solid rgba(46, 166, 220, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: all 0.2s ease !important;
+  padding: 0.8rem 1rem !important;
+}
+
+.cs-message--outgoing .cs-message__content:hover {
+  background-color: rgba(46, 166, 220, 0.2) !important;
+}
+
+/* AI messages - Clean minimalistic design */
+.cs-message--incoming .cs-message__content {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: all 0.2s ease !important;
+  padding: 0.8rem 1rem !important;
+}
+
+.cs-message--incoming .cs-message__content:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Message input customizations with blockchain aesthetic */
+.cs-message-input {
+  background-color: #0a0e17 !important;
+  border-top: 1px solid rgba(46, 166, 220, 0.2) !important;
+  padding: 0.75rem 1rem !important;
+  min-height: 70px !important;
+}
+
+.cs-message-input__content-editor-wrapper {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(46, 166, 220, 0.25) !important;
+  border-radius: 0.5rem !important;
+  margin-right: 0.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.cs-message-input__content-editor-wrapper:focus-within {
+  border-color: rgba(46, 166, 220, 0.6) !important;
+  box-shadow: 0 0 0 1px rgba(46, 166, 220, 0.2) !important;
+}
+
+.cs-message-input__content-editor-container {
+  padding: 0.75rem !important;
+}
+
+.cs-message-input__content-editor {
+  color: white !important;
+  background-color: transparent !important;
+  min-height: 24px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+}
+
+.cs-message-input__content-editor:focus-visible {
+  outline: none !important;
+}
+
+.cs-message-input__content-editor[placeholder]:empty:before {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-style: italic !important;
+}
+
+/* Send button with cleaner blockchain style */
+.cs-button--send {
+  background: rgba(46, 166, 220, 0.9) !important;
+  color: white !important;
+  border-radius: 0.5rem !important;
+  width: 3rem !important;
+  height: 3rem !important;
+  margin-left: 0.75rem !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.cs-button--send:hover {
+  background: rgba(46, 166, 220, 1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.cs-button--send:active {
+  transform: translateY(1px) !important;
+}
+
+.cs-button--send svg {
+  fill: white !important;
+  width: 1.2rem !important;
+  height: 1.2rem !important;
+}
+
+/* Avatar customizations with subtle blockchain style */
+.cs-avatar {
+  width: 2.4rem !important;
+  height: 2.4rem !important;
+  background-color: #0a0e17 !important;
+  margin-right: 0.75rem !important;
+  margin-left: 0 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  overflow: visible !important;
+  border-radius: 0.3rem !important;
+}
+
+.cs-message--outgoing .cs-avatar {
+  margin-left: 0.75rem !important;
+  margin-right: 0 !important;
+}
+
+.cs-avatar--incoming {
+  background-color: #0a0e17 !important;
+  border: 1px solid rgba(46, 166, 220, 0.4) !important; 
+}
+
+.cs-avatar--outgoing {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Typing indicator with blockchain look */
+.cs-typing-indicator {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.75rem 1rem !important;
+  max-width: 85% !important;
+}
+
+/* Sources display with blockchain-inspired organization */
+.sources-display {
+  margin-top: 0.75rem;
+  margin-left: 3.25rem;
+  width: 100%;
+  position: relative;
+  border-left: 1px solid rgba(46, 166, 220, 0.3);
+  padding-left: 0.75rem;
+}
+
+/* Reference link styling enhanced for blockchain */
+.reference-link {
+  color: rgb(46, 166, 220);
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 2px;
+  text-decoration: none;
+  transition: all 0.2s;
+  border-bottom: 1px dotted rgba(46, 166, 220, 0.5);
+}
+
+.reference-link:hover {
+  background-color: rgba(46, 166, 220, 0.1);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(46, 166, 220, 0.8);
+}
+
+/* Markdown content styling with improved readability */
+.markdown-content {
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.markdown-content h1, .markdown-content h2, .markdown-content h3, 
+.markdown-content h4, .markdown-content h5, .markdown-content h6 {
+  color: white;
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+}
+
+.markdown-content h1 { font-size: 1.5em; }
+.markdown-content h2 { font-size: 1.3em; }
+.markdown-content h3 { font-size: 1.15em; }
+.markdown-content p { margin-bottom: 1.2em; }
+.markdown-content ul, .markdown-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1.2em;
+}
+.markdown-content li { 
+  margin-bottom: 0.6em; 
+}
+.markdown-content blockquote {
+  border-left: 2px solid rgba(46, 166, 220, 0.7);
+  padding: 0.5em 0 0.5em 1em;
+  margin: 1em 0;
+  background: rgba(46, 166, 220, 0.05);
+  color: rgba(255, 255, 255, 0.8);
+}
+.markdown-content code {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  padding: 0.2em 0.4em;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  border: 1px solid rgba(46, 166, 220, 0.1);
+}
+.markdown-content pre {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1.2em;
+  border: 1px solid rgba(46, 166, 220, 0.1);
+}
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  border: none;
+}
+
+/* Enhanced but minimalistic animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Source cards with blockchain inspired design */
+.source-card {
+  transition: all 0.3s ease !important;
+  border: 1px solid rgba(46, 166, 220, 0.2) !important;
+  border-radius: 0.5rem !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  overflow: hidden !important;
+}
+
+.source-card:hover {
+  border-color: rgba(46, 166, 220, 0.4) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* All Sources section */
+.all-sources-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: 1rem !important;
+}
+
+/* Verified/Unverified badges */
+.verified-badge {
+  background: rgba(0, 200, 83, 0.1) !important;
+  color: rgb(0, 200, 83) !important;
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  padding: 0.2rem 0.5rem !important;
+  border-radius: 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  border: 1px solid rgba(0, 200, 83, 0.2) !important;
+}
+
+.unverified-badge {
+  background: rgba(255, 100, 100, 0.1) !important;
+  color: rgb(255, 100, 100) !important;
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  padding: 0.2rem 0.5rem !important;
+  border-radius: 2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  border: 1px solid rgba(255, 100, 100, 0.2) !important;
+}
+
+/* Source category badges */
+.source-type {
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  padding: 0.15rem 0.4rem !important;
+  border-radius: 2px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.source-type-web {
+  background: rgba(64, 114, 253, 0.1) !important;
+  color: rgb(64, 114, 253) !important;
+  border: 1px solid rgba(64, 114, 253, 0.2) !important;
+}
+
+.source-type-news {
+  background: rgba(255, 199, 0, 0.1) !important;
+  color: rgb(255, 199, 0) !important;
+  border: 1px solid rgba(255, 199, 0, 0.2) !important;
+}
+
+.source-type-academic {
+  background: rgba(188, 85, 255, 0.1) !important;
+  color: rgb(188, 85, 255) !important;
+  border: 1px solid rgba(188, 85, 255, 0.2) !important;
+}
+
+/* Blockchain data visualization elements */
+.data-block {
+  display: inline-block !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: rgba(46, 166, 220, 0.3) !important;
+  margin-right: 2px !important;
+}
+
+.data-block-verified {
+  background: rgba(0, 200, 83, 0.3) !important;
+}
+
+.data-block-unverified {
+  background: rgba(255, 100, 100, 0.3) !important;
+}
+
+.blockchain-separator {
+  display: flex !important;
+  align-items: center !important;
+  margin: 1rem 0 !important;
+}
+
+.blockchain-separator::before,
+.blockchain-separator::after {
+  content: '' !important;
+  flex: 1 !important;
+  border-bottom: 1px dashed rgba(46, 166, 220, 0.2) !important;
+}
+
+.blockchain-separator::before {
+  margin-right: 0.5rem !important;
+}
+
+.blockchain-separator::after {
+  margin-left: 0.5rem !important;
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 640px) {
+  .cs-message {
+    max-width: 95% !important;
+  }
+  
+  .cs-typing-indicator {
+    max-width: 95% !important;
+  }
+  
+  .cs-avatar {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+  
+  .sources-display {
+    margin-left: 2.5rem;
+  }
+  
+  .all-sources-grid {
+    grid-template-columns: 1fr !important;
+  }
+} 

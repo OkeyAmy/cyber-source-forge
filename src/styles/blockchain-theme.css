@@ -1,0 +1,700 @@
+/* Blockchain-inspired minimalist theme for SourceFinder */
+
+/* Base layout and colors */
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #0a0e17;
+  color: #ffffff;
+}
+
+/* Chat container structure */
+.cs-main-container,
+.cs-chat-container {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.cs-main-container {
+  background-color: #0a0e17 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Subtle blockchain grid background - more subtle now */
+.cs-main-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    linear-gradient(90deg, rgba(46, 166, 220, 0.01) 1px, transparent 1px),
+    linear-gradient(rgba(46, 166, 220, 0.01) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Message list customizations with improved scrolling */
+.cs-message-list {
+  background: #0a0e17 !important;
+  padding: 1rem !important;
+  height: auto !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(0, 255, 170, 0.5) rgba(0, 0, 0, 0.3) !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior: contain !important;
+  scroll-behavior: smooth !important;
+  transform: translateZ(0) !important; /* Hardware acceleration */
+  will-change: scroll-position !important;
+  padding-bottom: 20px !important; /* Add padding at the bottom for better scroll experience */
+}
+
+/* Enhanced scrollbar for better visibility */
+.cs-message-list::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.cs-message-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 3px !important;
+}
+
+.cs-message-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 170, 0.6) !important;
+  border-radius: 3px !important;
+}
+
+/* Fix for message positioning and rendering */
+.cs-message-list__scroll-wrapper {
+  position: relative !important;
+  min-height: 100% !important;
+}
+
+.cs-message__content-wrapper {
+  max-width: 85% !important;
+  position: relative !important;
+}
+
+/* Fix for message containers to prevent scroll issues */
+.cs-message {
+  margin-bottom: 1.5rem !important;
+  position: relative !important;
+  animation: fadeIn 0.3s ease-out forwards !important;
+  overflow: visible !important; /* Ensure content doesn't get cut off */
+  max-width: 100% !important; /* Control width at the message level */
+}
+
+/* Ensure message content doesn't cause horizontal scrolling */
+.cs-message__content {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* Fix for animated elements */
+@keyframes bounce-once {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+/* Header styling */
+.cs-conversation-header {
+  background-color: #0a0e17 !important;
+  border-bottom: 1px solid rgba(46, 166, 220, 0.2) !important;
+  padding: 0.75rem 1rem !important;
+  z-index: 10 !important;
+}
+
+/* Message styling */
+.cs-message {
+  margin-bottom: 1.5rem !important;
+  max-width: 85% !important;
+  position: relative !important;
+  animation: fadeIn 0.3s ease-out forwards !important;
+}
+
+/* User messages - Less coloring, more subtle */
+.cs-message--outgoing .cs-message__content {
+  background-color: rgba(46, 166, 220, 0.08) !important;
+  border: 1px solid rgba(46, 166, 220, 0.2) !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: all 0.2s ease !important;
+  padding: 0.8rem 1rem !important;
+}
+
+.cs-message--outgoing .cs-message__content:hover {
+  background-color: rgba(46, 166, 220, 0.1) !important;
+}
+
+/* AI messages - Cleaner, less distracting */
+.cs-message--incoming .cs-message__content {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: all 0.2s ease !important;
+  padding: 0.8rem 1rem !important;
+}
+
+.cs-message--incoming .cs-message__content:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Input area styling */
+.cs-message-input {
+  background-color: #0a0e17 !important;
+  border-top: 1px solid rgba(46, 166, 220, 0.2) !important;
+  padding: 0.75rem 1rem !important;
+  min-height: 70px !important;
+}
+
+.cs-message-input__content-editor-wrapper {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(46, 166, 220, 0.25) !important;
+  border-radius: 4px !important;
+  margin-right: 0.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+.cs-message-input__content-editor-wrapper:focus-within {
+  border-color: rgba(46, 166, 220, 0.6) !important;
+  box-shadow: 0 0 0 1px rgba(46, 166, 220, 0.2) !important;
+}
+
+.cs-message-input__content-editor-container {
+  padding: 0.75rem !important;
+}
+
+.cs-message-input__content-editor {
+  color: white !important;
+  background-color: transparent !important;
+  min-height: 24px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
+}
+
+.cs-message-input__content-editor:focus-visible {
+  outline: none !important;
+}
+
+.cs-message-input__content-editor[placeholder]:empty:before {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-style: italic !important;
+}
+
+/* Send button */
+.cs-button--send {
+  background: rgba(46, 166, 220, 0.9) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  width: 2.8rem !important;
+  height: 2.8rem !important;
+  margin-left: 0.75rem !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.cs-button--send:hover {
+  background: rgba(46, 166, 220, 1) !important;
+  transform: translateY(-1px) !important;
+}
+
+.cs-button--send:active {
+  transform: translateY(1px) !important;
+}
+
+.cs-button--send svg {
+  fill: white !important;
+  width: 1.2rem !important;
+  height: 1.2rem !important;
+}
+
+/* Avatar styling - Using the background from landing page */
+.cs-avatar {
+  width: 2.2rem !important;
+  height: 2.2rem !important;
+  background-color: #0a0e17 !important;
+  margin-right: 0.75rem !important;
+  margin-left: 0 !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  overflow: visible !important;
+  border-radius: 4px !important;
+}
+
+.cs-message--outgoing .cs-avatar {
+  margin-left: 0.75rem !important;
+  margin-right: 0 !important;
+}
+
+/* AI avatar - Using green accent from landing page */
+.cs-avatar--incoming {
+  background-color: rgba(0, 255, 170, 0.1) !important;
+  border: 1px solid rgba(0, 255, 170, 0.2) !important; 
+}
+
+/* User avatar - Using cyan accent from landing page */
+.cs-avatar--outgoing {
+  background-color: rgba(0, 183, 255, 0.1) !important;
+  border: 1px solid rgba(0, 183, 255, 0.2) !important;
+}
+
+/* Sources section styling */
+.sources-display {
+  margin-top: 0.75rem;
+  margin-left: 3rem;
+  width: calc(100% - 3rem);
+  position: relative;
+  border-left: 1px dashed rgba(46, 166, 220, 0.3);
+  padding-left: 0.75rem;
+}
+
+/* Sources container with enhanced scrolling */
+.sources-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 166, 220, 0.5) rgba(0, 0, 0, 0.3);
+  margin-bottom: 0.5rem;
+}
+
+/* Enhanced scrollbar for source container */
+.sources-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.sources-container::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.sources-container::-webkit-scrollbar-thumb {
+  background: rgba(46, 166, 220, 0.6);
+  border-radius: 3px;
+}
+
+/* Source card styling */
+.source-card {
+  flex: 0 0 auto;
+  width: 280px;
+  border: 1px solid rgba(46, 166, 220, 0.2);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.source-card:hover {
+  border-color: rgba(46, 166, 220, 0.4);
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.source-card-title {
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #ffffff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.source-card-snippet {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.75rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.source-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* All sources grid with improved scrolling */
+.all-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 166, 220, 0.5) rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced scrollbar for all sources grid */
+.all-sources-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.all-sources-grid::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+}
+
+.all-sources-grid::-webkit-scrollbar-thumb {
+  background: rgba(46, 166, 220, 0.6);
+  border-radius: 3px;
+}
+
+/* Reference link styling - less distracting */
+.reference-link {
+  color: rgb(46, 166, 220);
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0 2px;
+  border-radius: 2px;
+  text-decoration: none;
+  transition: all 0.2s;
+  border-bottom: 1px dotted rgba(46, 166, 220, 0.3);
+}
+
+.reference-link:hover {
+  background-color: rgba(46, 166, 220, 0.1);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(46, 166, 220, 0.5);
+}
+
+/* Markdown content styling - toned down colors */
+.markdown-content {
+  line-height: 1.6;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.markdown-content h1, .markdown-content h2, .markdown-content h3, 
+.markdown-content h4, .markdown-content h5, .markdown-content h6 {
+  color: rgba(255, 255, 255, 0.95);
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+}
+
+.markdown-content h1 { font-size: 1.5em; }
+.markdown-content h2 { font-size: 1.3em; }
+.markdown-content h3 { font-size: 1.15em; }
+.markdown-content p { margin-bottom: 1.2em; }
+
+.markdown-content ul, .markdown-content ol {
+  margin-left: 1.5em;
+  margin-bottom: 1.2em;
+}
+
+.markdown-content li { 
+  margin-bottom: 0.6em; 
+}
+
+.markdown-content blockquote {
+  border-left: 2px solid rgba(46, 166, 220, 0.5);
+  padding: 0.5em 0 0.5em 1em;
+  margin: 1em 0;
+  background: rgba(46, 166, 220, 0.03);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.markdown-content code {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  padding: 0.2em 0.4em;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+  border: 1px solid rgba(46, 166, 220, 0.1);
+}
+
+.markdown-content pre {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 3px;
+  padding: 1em;
+  overflow-x: auto;
+  margin-bottom: 1.2em;
+  border: 1px solid rgba(46, 166, 220, 0.1);
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  border: none;
+}
+
+/* Badges and indicators - more subtle */
+.verified-badge {
+  background: rgba(0, 200, 83, 0.05);
+  color: rgb(0, 200, 83);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(0, 200, 83, 0.15);
+}
+
+.unverified-badge {
+  background: rgba(255, 100, 100, 0.05);
+  color: rgb(255, 100, 100);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(255, 100, 100, 0.15);
+}
+
+/* Source type badges - more subtle */
+.source-type {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.15rem 0.4rem;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.source-type-web {
+  background: rgba(64, 114, 253, 0.05);
+  color: rgb(64, 114, 253);
+  border: 1px solid rgba(64, 114, 253, 0.15);
+}
+
+.source-type-news {
+  background: rgba(255, 199, 0, 0.05);
+  color: rgb(255, 199, 0);
+  border: 1px solid rgba(255, 199, 0, 0.15);
+}
+
+.source-type-academic {
+  background: rgba(188, 85, 255, 0.05);
+  color: rgb(188, 85, 255);
+  border: 1px solid rgba(188, 85, 255, 0.15);
+}
+
+.source-type-reddit {
+  background: rgba(255, 89, 0, 0.05);
+  color: rgb(255, 89, 0);
+  border: 1px solid rgba(255, 89, 0, 0.15);
+}
+
+.source-type-twitter {
+  background: rgba(29, 161, 242, 0.05);
+  color: rgb(29, 161, 242);
+  border: 1px solid rgba(29, 161, 242, 0.15);
+}
+
+/* Loading states - More visible background and colors */
+.loading-phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 1px dashed rgba(0, 255, 170, 0.3);
+}
+
+.loading-phase-blocks {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.loading-block {
+  width: 8px;
+  height: 8px;
+  background: rgba(0, 255, 170, 0.5);
+  animation: pulse 1.5s infinite;
+}
+
+.loading-block:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-block:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.loading-block:nth-child(4) {
+  animation-delay: 0.6s;
+}
+
+.loading-block:nth-child(5) {
+  animation-delay: 0.8s;
+}
+
+/* Enhanced animations for loading */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(0.8);
+    background: rgba(0, 255, 170, 0.4);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+    background: rgba(0, 255, 170, 0.8);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Data blocks for blockchain visualization */
+.data-block {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: rgba(0, 255, 170, 0.3);
+  margin-right: 2px;
+}
+
+.data-block-verified {
+  background: rgba(0, 255, 170, 0.4);
+}
+
+.data-block-unverified {
+  background: rgba(255, 100, 100, 0.3);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .cs-message {
+    max-width: 95% !important;
+  }
+  
+  .sources-display {
+    margin-left: 2.5rem;
+    width: calc(100% - 2.5rem);
+  }
+  
+  .all-sources-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .cs-avatar {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+}
+
+/* Cyberpunk-themed loading spinner */
+.cyber-spinner {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.cyber-spinner-outer {
+  position: absolute;
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 255, 170, 0.8);
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  animation: cyber-spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+.cyber-spinner-middle {
+  position: absolute;
+  border: 4px solid transparent;
+  border-right-color: rgba(0, 183, 255, 0.8);
+  border-radius: 50%;
+  width: 70%;
+  height: 70%;
+  top: 15%;
+  left: 15%;
+  animation: cyber-spin 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite reverse;
+}
+
+.cyber-spinner-inner {
+  position: absolute;
+  border: 4px solid transparent;
+  border-bottom-color: rgba(255, 0, 128, 0.8);
+  border-radius: 50%;
+  width: 40%;
+  height: 40%;
+  top: 30%;
+  left: 30%;
+  animation: cyber-spin 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+@keyframes cyber-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cyber-spinner::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border: 1px solid rgba(0, 255, 170, 0.3);
+  border-radius: 50%;
+  animation: cyber-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes cyber-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.95); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+.cyber-loading-text {
+  font-family: monospace;
+  font-size: 14px;
+  color: rgba(0, 255, 170, 0.8);
+  text-align: center;
+  margin-top: 15px;
+  letter-spacing: 2px;
+  animation: cyber-text-pulse 2s infinite;
+}
+
+.cyber-loading-text::after {
+  content: "";
+  animation: cyber-dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes cyber-dots {
+  0%, 20% { content: ""; }
+  40% { content: "."; }
+  60% { content: ".."; }
+  80%, 100% { content: "..."; }
+}
+
+@keyframes cyber-text-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+} 

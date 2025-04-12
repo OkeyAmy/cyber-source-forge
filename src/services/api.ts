@@ -44,12 +44,11 @@ export const api = {
       sourcesToUse = ['Reddit', 'Twitter', 'Web'];
     }
     
-    // Format the request body according to the API documentation
     const requestBody = {
       query,
-      session_id: sessionId,
+      session_id: sessionId || currentSession.id,
       filters: {
-        Sources: sourcesToUse // Match the exact case in the API documentation
+        Source: sourcesToUse
       }
     };
 
@@ -65,8 +64,8 @@ export const api = {
       }
 
       // Ensure data is formatted correctly for our frontend
-      // According to API documentation, the response should have structure:
-      // { response: { content: string, sources: SourceType[] } }
+      // For some response formats, the API returns "response" containing "content" and "sources"
+      // For others, it returns "response" as a string and "sources" as a separate array
       let content = '';
       let sources: SourceType[] = [];
       
@@ -78,29 +77,23 @@ export const api = {
         sources = data.response.sources || [];
       }
       
-      // Map sources to our format and ensure they have all required properties
+      // Add 'verified' property randomly if not present to maintain blockchain vibe
       sources = sources.map(source => ({
-        num: source.num || 0,
-        title: source.title || 'Unknown Source',
-        link: source.link || '#',
-        source: (source.source || 'Web') as "Reddit" | "Twitter" | "Web" | "News" | "Academic",
-        preview: source.preview || `Preview content from ${source.title || 'this source'}...`,
-        images: source.images || [],
-        logo: source.logo || null,
+        ...source,
         verified: source.verified !== undefined ? source.verified : Math.random() > 0.25
       }));
     
-      return {
+    return {
         content,
-        sources
-      };
+      sources
+    };
     } catch (error) {
       console.error('Error processing query:', error);
       throw error;
     }
   },
   
-  getSources: async (sessionId?: string): Promise<SourceType[]> => {
+  getSources: async (sessionId?: string) => {
     try {
       const endpoint = sessionId 
         ? `/api/sources?session_id=${sessionId}` 
@@ -108,23 +101,14 @@ export const api = {
       
       const data = await fetchAPI(endpoint);
       
-      if (data && Array.isArray(data.sources)) {
-        // Map response to our SourceType format
-        return data.sources.map((source: any) => ({
-          num: source.num || 0,
-          title: source.title || 'Unknown Source',
-          link: source.link || '#',
-          source: (source.source || 'Web') as "Reddit" | "Twitter" | "Web" | "News" | "Academic",
-          preview: source.preview || `Preview content from ${source.title || 'this source'}...`,
-          images: source.images || [],
-          logo: source.logo || null,
-          verified: source.verified !== undefined ? source.verified : Math.random() > 0.25 // Maintain blockchain vibe with some randomness
-        }));
-      }
-      
-      return [];
+      // Add 'verified' property randomly if not present
+      return (data.sources || []).map((source: SourceType) => ({
+        ...source,
+        verified: source.verified !== undefined ? source.verified : Math.random() > 0.25
+      }));
     } catch (error) {
       console.error('Error fetching sources:', error);
+      // Return empty array in case of error to avoid UI breaking
       return [];
     }
   },

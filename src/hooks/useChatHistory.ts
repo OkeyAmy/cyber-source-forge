@@ -3,31 +3,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useUserSettings } from './useUserSettings';
 import { api } from '@/services/api'; 
-import { ChatMessage, ChatSession, UseChatHistoryReturn } from '@/types/chatTypes';
 import { supabase } from '@/integrations/supabase/client';
-import { Json } from '@/integrations/supabase/types';
-
-// Helper function to safely convert between JSON and ChatMessage[] types
-const serializeMessages = (messages: ChatMessage[]): Json => {
-  return JSON.parse(JSON.stringify(messages)) as Json;
-};
-
-// Helper function to safely convert JSON data to ChatMessage[]
-const deserializeMessages = (data: Json | null): ChatMessage[] => {
-  if (!data) return [];
-  try {
-    // Handle both array and string formats
-    if (typeof data === 'string') {
-      return JSON.parse(data) as ChatMessage[];
-    } else if (Array.isArray(data)) {
-      return data as unknown as ChatMessage[];
-    }
-    return [];
-  } catch (e) {
-    console.error('Error deserializing messages:', e);
-    return [];
-  }
-};
+import { ChatMessage, ChatSession, UseChatHistoryReturn } from '@/types/chatTypes';
 
 export const useChatHistory = (): UseChatHistoryReturn => {
   const { user } = useAuth();
@@ -41,57 +18,19 @@ export const useChatHistory = (): UseChatHistoryReturn => {
   const fetchChatHistory = async () => {
     try {
       setIsLoading(true);
-      
-      // First try to get from API
+      // Get chat sessions from the API
       const chats = await api.getChats();
       
-      // If user is authenticated, also sync with Supabase
+      // If user is logged in, sync with Supabase
       if (user) {
-        try {
-          // Get chats from Supabase for this user
-          const { data: supabaseChats, error } = await supabase
-            .from('chat_history')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('updated_at', { ascending: false });
-          
-          if (error) throw error;
-          
-          // Combine chats from API and Supabase
-          if (supabaseChats && supabaseChats.length > 0) {
-            // Map Supabase data to our ChatSession format
-            const mappedChats: ChatSession[] = supabaseChats.map(chat => ({
-              id: chat.id,
-              title: chat.title || 'Untitled Chat',
-              messages: deserializeMessages(chat.messages),
-              created_at: chat.created_at || new Date().toISOString(),
-              updated_at: chat.updated_at || new Date().toISOString()
-            }));
-            
-            // Combine with API chats, avoiding duplicates
-            const combinedChats = [...mappedChats];
-            chats.forEach(apiChat => {
-              if (!combinedChats.some(chat => chat.id === apiChat.id)) {
-                combinedChats.push(apiChat);
-              }
-            });
-            
-            setChatHistory(combinedChats);
-          } else {
-            setChatHistory(chats);
-          }
-        } catch (supabaseError) {
-          console.error('Error fetching chats from Supabase:', supabaseError);
-          // Fall back to API chats if Supabase fails
-          setChatHistory(chats);
-        }
-      } else {
-        // No user logged in, just use API chats
-        setChatHistory(chats);
+        // Store chat data in Supabase for persistence
+        await syncWithSupabase(chats);
       }
       
+      setChatHistory(chats);
+      
       // If we have chats and no current chat is selected, get the current session
-      if (chatHistory.length > 0 && !currentChat) {
+      if (chats.length > 0 && !currentChat) {
         const currentSession = await api.getCurrentSession();
         if (currentSession.session_id) {
           const chatDetails = await api.getChatDetails(currentSession.session_id);
@@ -106,10 +45,95 @@ export const useChatHistory = (): UseChatHistoryReturn => {
     }
   };
 
-  // Load chat history when component mounts or user changes
+  // Function to sync chat data with Supabase
+  const syncWithSupabase = async (chats: ChatSession[]) => {
+    if (!user) return;
+    
+    try {
+      // For each chat, store or update in Supabase
+      for (const chat of chats) {
+        // Check if chat exists in Supabase
+        const { data: existingChat } = await supabase
+          .from('chats')
+          .select('*')
+          .eq('chat_id', chat.id)
+          .eq('user_id', user.id)
+          .single();
+        
+        if (existingChat) {
+          // Update existing chat
+          await supabase
+            .from('chats')
+            .update({
+              title: chat.title,
+              messages: chat.messages,
+              updated_at: new Date().toISOString()
+            })
+            .eq('chat_id', chat.id)
+            .eq('user_id', user.id);
+        } else {
+          // Insert new chat
+          await supabase
+            .from('chats')
+            .insert({
+              chat_id: chat.id,
+              user_id: user.id,
+              title: chat.title,
+              messages: chat.messages,
+              created_at: chat.created_at,
+              updated_at: chat.updated_at
+            });
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing with Supabase:', error);
+    }
+  };
+  
+  // Function to load chats from Supabase
+  const loadChatsFromSupabase = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: supabaseChats, error } = await supabase
+        .from('chats')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (supabaseChats && supabaseChats.length > 0) {
+        // Convert Supabase chats to ChatSession format
+        const formattedChats: ChatSession[] = supabaseChats.map(chat => ({
+          id: chat.chat_id,
+          title: chat.title,
+          messages: chat.messages,
+          created_at: chat.created_at,
+          updated_at: chat.updated_at
+        }));
+        
+        setChatHistory(formattedChats);
+        
+        // Set current chat if not already set
+        if (!currentChat) {
+          setCurrentChat(formattedChats[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading chats from Supabase:', error);
+    }
+  };
+
+  // Load chat history when component mounts
   useEffect(() => {
     fetchChatHistory();
-  }, [user?.id]); // Re-fetch when user ID changes (login/logout)
+    
+    // Also try to load from Supabase in case user is returning
+    if (user) {
+      loadChatsFromSupabase();
+    }
+  }, [user]);
 
   const createNewChat = async () => {
     try {
@@ -117,30 +141,14 @@ export const useChatHistory = (): UseChatHistoryReturn => {
       // Create a new chat via the API
       const newChat = await api.createChat(undefined, true); // force refresh
       
-      // If user is authenticated, also save to Supabase
-      if (user) {
-        try {
-          const { error } = await supabase
-            .from('chat_history')
-            .insert({
-              id: newChat.id,
-              user_id: user.id,
-              title: newChat.title,
-              messages: serializeMessages([]), // Empty messages array, serialized
-              created_at: newChat.created_at,
-              updated_at: newChat.updated_at
-            });
-            
-          if (error) throw error;
-        } catch (supabaseError) {
-          console.error('Error saving chat to Supabase:', supabaseError);
-          // Continue anyway since we have the API chat
-        }
-      }
-      
       // Update local state
       setChatHistory(prev => [newChat, ...prev]);
       setCurrentChat(newChat);
+      
+      // Sync with Supabase if user is logged in
+      if (user) {
+        await syncWithSupabase([newChat]);
+      }
       
       toast({
         title: "New Conversation Started",
@@ -173,30 +181,15 @@ export const useChatHistory = (): UseChatHistoryReturn => {
         setCurrentChat(updatedChat);
         
         // Update the chat in the history list
-        setChatHistory(prev => 
-          prev.map(chat => 
-            chat.id === chatId ? updatedChat : chat
+      setChatHistory(prev => 
+        prev.map(chat => 
+              chat.id === chatId ? updatedChat : chat
           )
         );
         
-        // If user is authenticated, also save to Supabase
+        // Sync with Supabase if user is logged in
         if (user) {
-          try {
-            const { error } = await supabase
-              .from('chat_history')
-              .update({
-                messages: serializeMessages(messages),
-                title: updatedChat.title,
-                updated_at: updatedChat.updated_at
-              })
-              .eq('id', chatId)
-              .eq('user_id', user.id);
-              
-            if (error) throw error;
-          } catch (supabaseError) {
-            console.error('Error updating chat in Supabase:', supabaseError);
-            // Continue anyway since we have the API update
-          }
+          await syncWithSupabase([updatedChat]);
         }
       }
     } catch (err) {
@@ -214,33 +207,26 @@ export const useChatHistory = (): UseChatHistoryReturn => {
       const success = await api.deleteChat(chatId);
 
       if (success) {
-        // Update local state
-        setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+      // Update local state
+      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
+      
+      if (currentChat?.id === chatId) {
+        setCurrentChat(null);
+      }
         
-        if (currentChat?.id === chatId) {
-          setCurrentChat(null);
-        }
-        
-        // If user is authenticated, also delete from Supabase
+        // Delete from Supabase if user is logged in
         if (user) {
-          try {
-            const { error } = await supabase
-              .from('chat_history')
-              .delete()
-              .eq('id', chatId)
-              .eq('user_id', user.id);
-              
-            if (error) throw error;
-          } catch (supabaseError) {
-            console.error('Error deleting chat from Supabase:', supabaseError);
-            // Continue anyway since we deleted from API
-          }
-        }
-        
-        toast({
-          title: "Chat Deleted",
-          description: "The conversation has been removed from your history.",
-        });
+          await supabase
+            .from('chats')
+            .delete()
+            .eq('chat_id', chatId)
+            .eq('user_id', user.id);
+      }
+      
+      toast({
+        title: "Chat Deleted",
+        description: "The conversation has been removed from your history.",
+      });
       }
     } catch (err) {
       console.error('Error deleting chat:', err);
@@ -255,61 +241,14 @@ export const useChatHistory = (): UseChatHistoryReturn => {
   const loadChat = async (chatId: string) => {
     try {
       setIsLoading(true);
-      
-      // First try to get from API
       const chatDetails = await api.getChatDetails(chatId);
+      setCurrentChat(chatDetails);
       
-      // If user is authenticated, check if Supabase has a more recent version
+      // Sync with Supabase if user is logged in
       if (user) {
-        try {
-          const { data: supabaseChat, error } = await supabase
-            .from('chat_history')
-            .select('*')
-            .eq('id', chatId)
-            .eq('user_id', user.id)
-            .single();
-            
-          if (error) {
-            // If not found in Supabase, add it
-            if (error.code === 'PGRST116') {
-              await supabase
-                .from('chat_history')
-                .insert({
-                  id: chatDetails.id,
-                  user_id: user.id,
-                  title: chatDetails.title,
-                  messages: serializeMessages(chatDetails.messages),
-                  created_at: chatDetails.created_at,
-                  updated_at: chatDetails.updated_at
-                });
-            } else {
-              throw error;
-            }
-          } else if (supabaseChat) {
-            // Use Supabase data if it exists and is more recent
-            const supabaseDate = new Date(supabaseChat.updated_at || '').getTime();
-            const apiDate = new Date(chatDetails.updated_at).getTime();
-            
-            if (supabaseDate > apiDate) {
-              const mappedChat: ChatSession = {
-                id: supabaseChat.id,
-                title: supabaseChat.title || 'Untitled Chat',
-                messages: deserializeMessages(supabaseChat.messages),
-                created_at: supabaseChat.created_at || new Date().toISOString(),
-                updated_at: supabaseChat.updated_at || new Date().toISOString()
-              };
-              
-              setCurrentChat(mappedChat);
-              return mappedChat;
-            }
-          }
-        } catch (supabaseError) {
-          console.error('Error checking Supabase for chat:', supabaseError);
-          // Continue with API chat
-        }
+        await syncWithSupabase([chatDetails]);
       }
       
-      setCurrentChat(chatDetails);
       return chatDetails;
     } catch (err) {
       console.error('Error loading chat:', err);
@@ -331,23 +270,17 @@ export const useChatHistory = (): UseChatHistoryReturn => {
         await api.deleteChat(chat.id);
       }
 
-      // If user is authenticated, also clear from Supabase
-      if (user) {
-        try {
-          const { error } = await supabase
-            .from('chat_history')
-            .delete()
-            .eq('user_id', user.id);
-            
-          if (error) throw error;
-        } catch (supabaseError) {
-          console.error('Error clearing chats from Supabase:', supabaseError);
-        }
-      }
-
       // Clear local state
       setChatHistory([]);
       setCurrentChat(null);
+      
+      // Delete all chats from Supabase if user is logged in
+      if (user) {
+        await supabase
+          .from('chats')
+          .delete()
+          .eq('user_id', user.id);
+      }
       
       toast({
         title: "Chat History Cleared",
