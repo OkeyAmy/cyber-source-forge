@@ -1,64 +1,90 @@
 import React from 'react';
-import { Shield, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Sparkles, BookOpen, Shield } from 'lucide-react';
 
 interface WelcomeScreenProps {
-  onSuggestionClick?: (suggestion: string) => void;
+  onExampleClick: (query: string) => void;
 }
 
-function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
-  const suggestions = [
-    "Tell me about recent advancements in quantum computing", 
-    "What are the environmental impacts of blockchain?", 
-    "What's the evidence for and against artificial superintelligence risks?",
-    "How effective are current treatments for long COVID?"
-  ];
-  
-  const handleSuggestionClick = (suggestion: string) => {
-    if (onSuggestionClick) {
-      onSuggestionClick(suggestion);
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onExampleClick }) => {
+  const examples = [
+    {
+      text: "Find academic sources about quantum computing applications",
+      icon: <BookOpen className="h-4 w-4 mr-2" />,
+    },
+    {
+      text: "What are the latest advancements in renewable energy?",
+      icon: <Sparkles className="h-4 w-4 mr-2" />,
+    },
+    {
+      text: "Compare different approaches to cybersecurity in financial services",
+      icon: <Shield className="h-4 w-4 mr-2" />,
     }
-  };
-  
+  ];
+
   return (
-    <div className="h-full flex flex-col items-center justify-center text-white/40 max-w-md mx-auto text-center p-6">
-      <div className="w-20 h-20 border-2 border-cyber-green/30 rounded-full flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,255,170,0.2)] animate-pulse">
-        <Shield className="h-10 w-10 text-cyber-green/50" />
-      </div>
-      <h3 className="text-2xl font-semibold mb-3 text-white/90">Welcome to Source Finder</h3>
-      <p className="mb-8 text-white/70 leading-relaxed">
-        Ask any research question and I'll find verified sources with accurate information from across the web. Our AI analyzes and validates each source for credibility.
-      </p>
-      
-      <div className="grid grid-cols-1 gap-3 w-full">
-        {suggestions.map((suggestion, idx) => (
-          <Button 
-            key={idx}
-            variant="outline" 
-            className="text-left justify-start h-auto py-3 border-white/10 hover:border-cyber-green/40 bg-white/5 hover:bg-white/10 transition-all group"
-            onClick={() => handleSuggestionClick(suggestion)}
-          >
-            <ChevronRight className="mr-2 h-4 w-4 flex-shrink-0 text-cyber-green group-hover:translate-x-1 transition-transform" />
-            <span className="line-clamp-1">{suggestion}</span>
-          </Button>
-        ))}
-      </div>
-      
-      {/* Feature highlights */}
-      <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-        <div className="p-4 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-cyber-green/20 transition-all">
-          <Sparkles className="h-5 w-5 text-cyber-green mb-2" />
-          <h4 className="text-sm font-medium text-white mb-1">Source Verification</h4>
-          <p className="text-xs text-white/60">Automatically checks information against verified sources</p>
+    <div className="flex flex-col items-center justify-center p-6 md:p-12 h-full">
+      <div className="w-full max-w-3xl mx-auto text-center">
+        <div className="inline-flex items-center justify-center p-3 mb-6 bg-cyber-green/10 rounded-full border border-cyber-green/30">
+          <svg className="w-8 h-8 text-cyber-green" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"/>
+          </svg>
         </div>
-        <div className="p-4 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-cyber-green/20 transition-all">
-          <Shield className="h-5 w-5 text-cyber-green mb-2" />
-          <h4 className="text-sm font-medium text-white mb-1">Credibility Analysis</h4>
-          <p className="text-xs text-white/60">Evaluates the reliability of each source</p>
+        
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-3">Welcome to SourceFinder AI</h1>
+        
+        <p className="text-white/70 mb-8 max-w-2xl mx-auto">
+          Ask any question and I'll find verified, credible sources from across the web. 
+          All sources are verified and can be directly referenced in your work.
+        </p>
+        
+        <div className="grid gap-3">
+          {examples.map((example, idx) => (
+            <Button
+              key={idx}
+              variant="outline"
+              className="bg-white/5 border-white/10 hover:border-cyber-green/50 hover:bg-cyber-green/5 text-white justify-start text-left h-auto py-3 px-4"
+              onClick={() => onExampleClick(example.text)}
+            >
+              {example.icon}
+              <span>{example.text}</span>
+            </Button>
+          ))}
+        </div>
+        
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-black/20 rounded-xl border border-white/10 p-4">
+            <div className="bg-blue-900/30 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+              <BookOpen className="h-5 w-5 text-blue-400" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-1">Academic Sources</h3>
+            <p className="text-white/60 text-sm">Access verified academic papers, journals, and research publications</p>
+          </div>
+          
+          <div className="bg-black/20 rounded-xl border border-white/10 p-4">
+            <div className="bg-orange-900/30 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+              <svg className="h-5 w-5 text-orange-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path d="M17.2 9.8C17.2 10.7941 16.3941 11.6 15.4 11.6C14.4059 11.6 13.6 10.7941 13.6 9.8C13.6 8.80589 14.4059 8 15.4 8C16.3941 8 17.2 8.80589 17.2 9.8Z" fill="currentColor"/>
+                <path d="M9.2 14.4C9.2 15.3941 8.39411 16.2 7.4 16.2C6.40589 16.2 5.6 15.3941 5.6 14.4C5.6 13.4059 6.40589 12.6 7.4 12.6C8.39411 12.6 9.2 13.4059 9.2 14.4Z" fill="currentColor"/>
+                <path d="M12 7.6L15.4 8L15.4 11.6L12 16.2L7.4 12.6V8L12 7.6Z" stroke="currentColor" strokeWidth="1.5"/>
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-white mb-1">Community Knowledge</h3>
+            <p className="text-white/60 text-sm">Discover insights from Reddit, Twitter, and other community platforms</p>
+          </div>
+          
+          <div className="bg-black/20 rounded-xl border border-white/10 p-4">
+            <div className="bg-green-900/30 w-10 h-10 rounded-full flex items-center justify-center mb-3">
+              <Shield className="h-5 w-5 text-green-400" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-1">Verified Results</h3>
+            <p className="text-white/60 text-sm">All sources undergo blockchain verification for authenticity and reliability</p>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
-export default WelcomeScreen; 
+export default WelcomeScreen;

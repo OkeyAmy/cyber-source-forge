@@ -1,0 +1,95 @@
+:root {
+  /* Colors */
+  --primary-color: #6366f1;
+  --surface-color: #1e293b;
+  --background-color: #0f172a;
+  --text-color: #f8fafc;
+  --text-color-secondary: rgba(248, 250, 252, 0.7);
+  --border-color: rgba(0, 255, 170, 0.2);
+  --border-color-hover: rgba(0, 255, 170, 0.4);
+  --cyber-green: #00ffaa;
+  --cyber-dark: #0f1320;
+  
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  --font-mono: SF Mono, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  
+  /* Spacing */
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+  
+  /* Border Radius */
+  --border-radius-sm: 0.25rem;
+  --border-radius: 0.5rem;
+  --border-radius-md: 0.75rem;
+  --border-radius-lg: 1rem;
+  --border-radius-xl: 1.5rem;
+  --border-radius-full: 9999px;
+  
+  /* Animation */
+  --transition-speed: 300ms;
+  --transition-function: cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Layout */
+  --header-height: 60px;
+  --main-height: calc(100vh - var(--header-height));
+  --chat-width: 70%;
+  --context-width: 30%;
+  --input-height: 50px;
+  --input-max-height: 200px;
+  
+  /* Z-index */
+  --z-index-dropdown: 1000;
+  --z-index-sticky: 1020;
+  --z-index-fixed: 1030;
+  --z-index-modal-backdrop: 1040;
+  --z-index-modal: 1050;
+  --z-index-popover: 1060;
+  --z-index-tooltip: 1070;
+}
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #818cf8;
+    --surface-color: #1e293b;
+    --background-color: #0f172a;
+    --text-color: #f8fafc;
+    --text-color-secondary: rgba(248, 250, 252, 0.7);
+  }
+}
+
+/* High contrast mode overrides */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #ffffff;
+    --surface-color: #000000;
+    --background-color: #000000;
+    --text-color: #ffffff;
+    --text-color-secondary: #ffffff;
+    --border-color: #ffffff;
+    --border-color-hover: #ffffff;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion) {
+  :root {
+    --transition-speed: 0.001ms;
+  }
+} 

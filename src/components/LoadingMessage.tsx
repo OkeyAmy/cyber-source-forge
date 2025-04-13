@@ -1,110 +1,47 @@
 import React from 'react';
-import { Shield, Database, Search, LineChart } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface LoadingMessageProps {
   message: string;
   phase: number;
-  className?: string;
 }
 
-function LoadingMessage({ message, phase, className }: LoadingMessageProps) {
-  // Define phase-specific details
-  const phases = [
-    { name: 'Processing', icon: <Database className="h-4 w-4" /> },
-    { name: 'Searching', icon: <Search className="h-4 w-4" /> },
-    { name: 'Analyzing', icon: <LineChart className="h-4 w-4" /> },
-  ];
-
+const LoadingMessage: React.FC<LoadingMessageProps> = ({ message, phase }) => {
   return (
-    <div 
-      className={cn("flex w-full my-4 px-4 justify-start animate-fadeIn", className)}
-      role="status"
-      aria-live="polite"
-    >
-      <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0 mr-2">
-        <Shield className="h-4 w-4 text-cyber-green animate-pulse" />
-      </div>
-      <div className="bg-gray-700/90 text-white rounded-tl-xl rounded-tr-xl rounded-br-xl p-3 max-w-[80%] shadow-sm">
-        <div className="text-xs font-medium mb-2 flex justify-between items-center">
-          <span>Source Finder AI</span>
-          <span className="text-cyber-green animate-pulse flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-cyber-green animate-pulse"></span>
-            Working...
-          </span>
+    <div className="bg-black/30 border border-cyber-green/30 text-white rounded-lg rounded-tl-none max-w-[90%] lg:max-w-[80%] overflow-hidden">
+      <div className="border-b border-cyber-green/20 bg-cyber-green/5 px-4 py-2 flex items-center">
+        <div className="w-6 h-6 rounded-full bg-cyber-green/20 flex items-center justify-center mr-2">
+          <svg className="w-3.5 h-3.5 text-cyber-green" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"/>
+          </svg>
         </div>
-
-        <div className="flex flex-col items-start w-full">
-          <div className="flex items-center mb-2">
-            <div className="mr-2 text-base text-white/90 font-medium">{message}</div>
-            <div className="flex space-x-1">
-              <span 
-                className="h-2 w-2 rounded-full bg-cyber-green animate-pulse" 
-                style={{ animationDelay: '0ms' }}
-                aria-hidden="true"
-              ></span>
-              <span 
-                className="h-2 w-2 rounded-full bg-cyber-green animate-pulse" 
-                style={{ animationDelay: '300ms' }}
-                aria-hidden="true"
-              ></span>
-              <span 
-                className="h-2 w-2 rounded-full bg-cyber-green animate-pulse" 
-                style={{ animationDelay: '600ms' }}
-                aria-hidden="true"
-              ></span>
-            </div>
-          </div>
+        <span className="text-xs text-cyber-green">SourceFinder AI</span>
+      </div>
+      
+      <div className="p-4 flex items-center">
+        <div className="animate-spin mr-3 text-cyber-green">
+          <Loader className="h-4 w-4" />
+        </div>
+        
+        <div>
+          <p className="text-sm text-white/90">{message}</p>
           
-          {/* Progress bar with improved styling */}
-          <div 
-            className="w-full h-1.5 bg-white/10 rounded-full mb-2 overflow-hidden"
-            role="progressbar" 
-            aria-valuenow={Math.min((phase + 1) * 33, 100)} 
-            aria-valuemin={0} 
-            aria-valuemax={100}
-          >
+          <div className="mt-2 h-1.5 bg-black/50 rounded-full w-64 overflow-hidden">
+            {/* Progress bar based on phase */}
             <div 
-              className="h-full bg-gradient-to-r from-cyber-green/80 to-cyber-green transition-all duration-700 ease-in-out rounded-full"
-              style={{ width: `${Math.min((phase + 1) * 33, 100)}%` }}
-            ></div>
-          </div>
-          
-          {/* Phase indicators with icons */}
-          <div className="w-full flex justify-between text-xs">
-            {phases.map((p, idx) => (
-              <div key={idx} className="flex items-center">
-                <div 
-                  className={cn(
-                    "w-5 h-5 rounded-full flex items-center justify-center mr-1.5 transition-colors",
-                    phase >= idx ? 'bg-cyber-green/20' : 'bg-white/10'
-                  )}
-                >
-                  <span className={cn(
-                    "text-xs transition-colors",
-                    phase >= idx ? 'text-cyber-green' : 'text-white/40'
-                  )}>
-                    {idx + 1}
-                  </span>
-                </div>
-                <div className="flex flex-col">
-                  <span className={cn(
-                    "text-xs transition-colors",
-                    phase >= idx ? 'text-cyber-green' : 'text-white/40'
-                  )}>
-                    {p.name}
-                  </span>
-                  {phase === idx && (
-                    <span className="h-0.5 w-full bg-cyber-green mt-0.5 animate-pulse rounded-full"></span>
-                  )}
-                </div>
-              </div>
-            ))}
+              className="h-full bg-gradient-to-r from-cyber-green/60 to-cyber-green rounded-full transition-all duration-500 flex items-center justify-end"
+              style={{ 
+                width: phase === 0 ? '15%' : phase === 1 ? '55%' : '85%',
+              }}
+            >
+              <div className="absolute -right-1 top-1/2 transform -translate-y-1/2 w-2.5 h-2.5 bg-cyber-green rounded-full shadow-[0_0_5px_rgba(0,255,170,0.7)]" />
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
-export default LoadingMessage; 
+export default LoadingMessage;

@@ -33,8 +33,26 @@ export const useChatHistory = (): UseChatHistoryReturn => {
       if (chats.length > 0 && !currentChat) {
         const currentSession = await api.getCurrentSession();
         if (currentSession.session_id) {
-          const chatDetails = await api.getChatDetails(currentSession.session_id);
-          setCurrentChat(chatDetails);
+          try {
+            const chatDetails = await api.getChatDetails(currentSession.session_id);
+            setCurrentChat(chatDetails);
+          } catch (err) {
+            console.error("Error loading current chat details:", err);
+            // If current chat can't be loaded, set the most recent chat as current
+            if (chats.length > 0) {
+              // Sort chats by updated_at date
+              const sortedChats = [...chats].sort((a, b) => 
+                new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+              );
+              setCurrentChat(sortedChats[0]);
+            }
+          }
+        } else if (chats.length > 0) {
+          // If no current session, set the most recent chat as current
+          const sortedChats = [...chats].sort((a, b) => 
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+          );
+          setCurrentChat(sortedChats[0]);
         }
       }
     } catch (err) {
@@ -108,7 +126,7 @@ export const useChatHistory = (): UseChatHistoryReturn => {
         const formattedChats: ChatSession[] = supabaseChats.map(chat => ({
           id: chat.chat_id,
           title: chat.title,
-          messages: chat.messages,
+          messages: chat.messages || [],
           created_at: chat.created_at,
           updated_at: chat.updated_at
         }));
@@ -116,7 +134,7 @@ export const useChatHistory = (): UseChatHistoryReturn => {
         setChatHistory(formattedChats);
         
         // Set current chat if not already set
-        if (!currentChat) {
+        if (!currentChat && formattedChats.length > 0) {
           setCurrentChat(formattedChats[0]);
         }
       }
@@ -163,7 +181,20 @@ export const useChatHistory = (): UseChatHistoryReturn => {
         description: err instanceof Error ? err.message : "An unexpected error occurred",
         variant: "destructive",
       });
-      return null;
+      
+      // Create a local fallback chat if API fails
+      const fallbackChat: ChatSession = {
+        id: `local_${Date.now()}`,
+        title: "New Chat",
+        messages: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      setChatHistory(prev => [fallbackChat, ...prev]);
+      setCurrentChat(fallbackChat);
+      
+      return fallbackChat;
     } finally {
       setIsLoading(false);
     }
@@ -180,10 +211,23 @@ export const useChatHistory = (): UseChatHistoryReturn => {
         };
         setCurrentChat(updatedChat);
         
+        // Set the title based on the first user message if title is "New Chat"
+        if (updatedChat.title === "New Chat" && messages.length > 0) {
+          const firstUserMessage = messages.find(m => m.role === 'user');
+          if (firstUserMessage) {
+            // Truncate long messages for the title
+            const title = firstUserMessage.content.length > 50 
+              ? firstUserMessage.content.slice(0, 50) + "..." 
+              : firstUserMessage.content;
+            
+            updatedChat.title = title;
+          }
+        }
+        
         // Update the chat in the history list
-      setChatHistory(prev => 
-        prev.map(chat => 
-              chat.id === chatId ? updatedChat : chat
+        setChatHistory(prev => 
+          prev.map(chat => 
+            chat.id === chatId ? updatedChat : chat
           )
         );
         
@@ -204,16 +248,30 @@ export const useChatHistory = (): UseChatHistoryReturn => {
 
   const deleteChat = async (chatId: string) => {
     try {
-      const success = await api.deleteChat(chatId);
+      // First, try to delete via API
+      let success = false;
+      try {
+        success = await api.deleteChat(chatId);
+      } catch (apiError) {
+        console.error('API Error deleting chat:', apiError);
+        // Continue with local deletion even if API fails
+        success = true;
+      }
 
       if (success) {
-      // Update local state
-      setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
-      
-      if (currentChat?.id === chatId) {
-        setCurrentChat(null);
-      }
+        // Update local state
+        setChatHistory(prev => prev.filter(chat => chat.id !== chatId));
         
+        if (currentChat?.id === chatId) {
+          // If we deleted the current chat, set a new current chat
+          const remainingChats = chatHistory.filter(chat => chat.id !== chatId);
+          if (remainingChats.length > 0) {
+            setCurrentChat(remainingChats[0]);
+          } else {
+            setCurrentChat(null);
+          }
+        }
+          
         // Delete from Supabase if user is logged in
         if (user) {
           await supabase
@@ -221,12 +279,12 @@ export const useChatHistory = (): UseChatHistoryReturn => {
             .delete()
             .eq('chat_id', chatId)
             .eq('user_id', user.id);
-      }
-      
-      toast({
-        title: "Chat Deleted",
-        description: "The conversation has been removed from your history.",
-      });
+        }
+        
+        toast({
+          title: "Chat Deleted",
+          description: "The conversation has been removed from your history.",
+        });
       }
     } catch (err) {
       console.error('Error deleting chat:', err);
@@ -241,7 +299,23 @@ export const useChatHistory = (): UseChatHistoryReturn => {
   const loadChat = async (chatId: string) => {
     try {
       setIsLoading(true);
-      const chatDetails = await api.getChatDetails(chatId);
+      // Attempt to load chat details from API
+      let chatDetails: ChatSession;
+      
+      try {
+        chatDetails = await api.getChatDetails(chatId);
+      } catch (apiError) {
+        console.error('Error loading chat from API:', apiError);
+        
+        // Fallback to local state if API fails
+        const localChat = chatHistory.find(chat => chat.id === chatId);
+        if (!localChat) {
+          throw new Error(`Chat with ID ${chatId} not found`);
+        }
+        
+        chatDetails = localChat;
+      }
+      
       setCurrentChat(chatDetails);
       
       // Sync with Supabase if user is logged in

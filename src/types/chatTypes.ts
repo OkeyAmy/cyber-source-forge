@@ -7,6 +7,13 @@ export interface SourceReference {
   images?: string[];
   logo?: string;
   verified?: boolean;
+  blockchainData?: {
+    hash: string;
+    timestamp: string;
+    network: string;
+    transactionId?: string;
+    verificationStatus: 'pending' | 'verified' | 'failed';
+  };
 }
 
 export interface ChatMessage {
@@ -76,4 +83,33 @@ export interface SimpleChatHistoryHook {
   addMessage: (message: ChatMessage) => void;
   clearChatHistory: () => void;
   exportChatHistory: () => string;
+}
+
+// New interfaces for blockchain verification
+export interface BlockchainVerification {
+  hash: string;
+  timestamp: string;
+  network: string;
+  transactionId?: string;
+  status: 'pending' | 'verified' | 'failed';
+  ipfsHash?: string;
+}
+
+export interface MessageVerification {
+  messageId: string;
+  verification: BlockchainVerification;
+}
+
+// Context panel types
+export interface ContextPanelState {
+  isOpen: boolean;
+  activeTab: 'sources' | 'verification' | 'search';
+  searchQuery?: string;
+  searchResults?: SourceReference[];
+}
+
+export interface SmartSuggestion {
+  id: string;
+  text: string;
+  category: 'related' | 'follow-up' | 'clarification';
 }

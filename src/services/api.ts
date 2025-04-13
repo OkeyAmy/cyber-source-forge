@@ -1,6 +1,6 @@
 import { SourceType, ChatMessage, ChatSession } from '@/types/chatTypes';
 
-// API Base URL
+// API Base URL - pointing to the deployed SourceFinder API
 const API_BASE_URL = 'https://source-finder-1.onrender.com';
 
 // Store current session in memory
@@ -22,6 +22,7 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(currentSession.id && { 'X-Chat-ID': currentSession.id }),
         ...options.headers,
       },
     });
@@ -33,86 +34,136 @@ const fetchAPI = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 export const api = {
+  // Process a query and return response with sources
   processQuery: async (query: string, sessionId?: string, focusArea: 'All' | 'Research' | 'Social' = 'All') => {
     // Convert focusArea to actual filter sources
     let sourcesToUse: string[] = [];
     if (focusArea === 'All') {
       sourcesToUse = ['Reddit', 'Twitter', 'Web', 'News', 'Academic'];
     } else if (focusArea === 'Research') {
-      sourcesToUse = ['News', 'Academic', 'Web'];
+      sourcesToUse = ['Academic', 'Web', 'News'];
     } else {
       sourcesToUse = ['Reddit', 'Twitter', 'Web'];
     }
     
+    // Format request according to API documentation
     const requestBody = {
       query,
-      session_id: sessionId || currentSession.id,
       filters: {
-        Source: sourcesToUse
+        Sources: sourcesToUse
       }
     };
 
     try {
-      const data = await fetchAPI('/api/process-query', {
+      // Use chat ID in header if available
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (sessionId) {
+        headers['X-Chat-ID'] = sessionId;
+      } else if (currentSession.id) {
+        headers['X-Chat-ID'] = currentSession.id;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/process-query`, {
         method: 'POST',
+        headers,
         body: JSON.stringify(requestBody),
       });
       
-      // Store session ID if it's returned and we don't have one
-      if (data.session_id && !currentSession.id) {
-        currentSession.id = data.session_id;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || `API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Update current session if we get a chat_id
+      if (data.chat_id) {
+        currentSession.id = data.chat_id;
       }
 
-      // Ensure data is formatted correctly for our frontend
-      // For some response formats, the API returns "response" containing "content" and "sources"
-      // For others, it returns "response" as a string and "sources" as a separate array
+      // Handle response based on API documentation format
       let content = '';
       let sources: SourceType[] = [];
       
+      // Extract content and sources from response
       if (typeof data.response === 'string') {
         content = data.response;
         sources = data.sources || [];
-      } else if (typeof data.response === 'object') {
-        content = data.response.content || '';
-        sources = data.response.sources || [];
+      } else if (data.response && typeof data.response === 'object') {
+        content = data.response.content || data.response;
+        sources = data.response.sources || data.sources || [];
+      } else {
+        content = data.content || '';
+        sources = data.sources || [];
       }
       
-      // Add 'verified' property randomly if not present to maintain blockchain vibe
+      // Ensure sources follow our expected format
       sources = sources.map(source => ({
-        ...source,
+        num: source.num || Math.floor(Math.random() * 1000),
+        title: source.title || 'Unknown Source',
+        link: source.link || '#',
+        source: (source.source as "Reddit" | "Twitter" | "Web" | "News" | "Academic") || "Web",
+        preview: source.snippet || source.preview || "No preview available",
+        images: source.images || [],
+        logo: source.logo || null,
         verified: source.verified !== undefined ? source.verified : Math.random() > 0.25
       }));
     
-    return {
+      return {
         content,
-      sources
-    };
+        sources
+      };
     } catch (error) {
       console.error('Error processing query:', error);
       throw error;
     }
   },
   
+  // Get all sources for the current session
   getSources: async (sessionId?: string) => {
     try {
-      const endpoint = sessionId 
-        ? `/api/sources?session_id=${sessionId}` 
-        : '/api/sources';
+      // Use headers for session ID
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
       
-      const data = await fetchAPI(endpoint);
+      if (sessionId) {
+        headers['X-Chat-ID'] = sessionId;
+      } else if (currentSession.id) {
+        headers['X-Chat-ID'] = currentSession.id;
+      }
       
-      // Add 'verified' property randomly if not present
-      return (data.sources || []).map((source: SourceType) => ({
-        ...source,
+      const response = await fetch(`${API_BASE_URL}/api/sources`, {
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching sources: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Format sources to match our expected type
+      return (data.sources || []).map((source: any) => ({
+        num: source.num || Math.floor(Math.random() * 1000),
+        title: source.title || 'Unknown Source',
+        link: source.link || '#',
+        source: (source.source as "Reddit" | "Twitter" | "Web" | "News" | "Academic") || "Web",
+        preview: source.snippet || source.preview || "No preview available",
+        images: source.images || [],
+        logo: source.logo || null,
         verified: source.verified !== undefined ? source.verified : Math.random() > 0.25
       }));
     } catch (error) {
       console.error('Error fetching sources:', error);
-      // Return empty array in case of error to avoid UI breaking
       return [];
     }
   },
   
+  // Get information about the currently active session
   getCurrentSession: async (): Promise<{ session_id: string | null, title?: string, updated_at?: string }> => {
     try {
       const data = await fetchAPI('/api/current-session');
@@ -133,15 +184,16 @@ export const api = {
     }
   },
   
+  // Get all chat sessions
   getChats: async (): Promise<ChatSession[]> => {
     try {
       const data = await fetchAPI('/api/chats');
       
       return Array.isArray(data.chats) 
         ? data.chats.map((chat: any) => ({
-            id: chat.id || `chat_${Math.random().toString(36).substring(2, 15)}`,
+            id: chat.id || chat.session_id || `chat_${Math.random().toString(36).substring(2, 15)}`,
             title: chat.title || 'Unnamed Chat',
-            updated_at: chat.updatedAt || new Date().toISOString(),
+            updated_at: chat.updatedAt || chat.updated_at || new Date().toISOString(),
             created_at: chat.created_at || new Date().toISOString(),
             messages: []
           }))
@@ -152,6 +204,7 @@ export const api = {
     }
   },
   
+  // Create a new chat session
   createChat: async (query?: string, refresh: boolean = false): Promise<ChatSession> => {
     try {
       const endpoint = refresh ? '/api/chats?refresh=true' : '/api/chats';
@@ -184,7 +237,7 @@ export const api = {
     } catch (error) {
       console.error('Error creating chat:', error);
       // Return a fallback chat session to avoid UI breaking
-    return {
+      return {
         id: `chat_${Math.random().toString(36).substring(2, 15)}`,
         title: query?.substring(0, 30) || 'New Chat',
         updated_at: new Date().toISOString(),
@@ -194,24 +247,70 @@ export const api = {
     }
   },
   
+  // Get chat history
+  getChatHistory: async (sessionId: string): Promise<ChatMessage[]> => {
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Chat-ID': sessionId
+      };
+      
+      const response = await fetch(`${API_BASE_URL}/api/chat/history`, {
+        headers
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error fetching chat history: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      return Array.isArray(data) ? data.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp || new Date().toISOString(),
+        sources: msg.sources || []
+      })) : [];
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+      return [];
+    }
+  },
+  
+  // Get details for a specific chat
   getChatDetails: async (sessionId: string): Promise<ChatSession> => {
     try {
-      const data = await fetchAPI(`/api/chats/${sessionId}`);
+      // First get chat info
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Chat-ID': sessionId
+      };
       
-      // Format to match our frontend's expected structure
+      const infoResponse = await fetch(`${API_BASE_URL}/api/chat`, {
+        headers
+      });
+      
+      if (!infoResponse.ok) {
+        throw new Error(`Error fetching chat info: ${infoResponse.status}`);
+      }
+      
+      const chatInfo = await infoResponse.json();
+      
+      // Then get chat history
+      const messages = await this.getChatHistory(sessionId);
+      
       return {
         id: sessionId,
-        title: data.title || `Chat session ${sessionId}`,
-        updated_at: data.updated_at || new Date().toISOString(),
-        created_at: data.created_at || new Date().toISOString(),
-        messages: Array.isArray(data.messages) ? data.messages : []
+        title: chatInfo.title || `Chat session ${sessionId}`,
+        updated_at: chatInfo.updated_at || new Date().toISOString(),
+        created_at: chatInfo.created_at || new Date().toISOString(),
+        messages
       };
     } catch (error) {
       console.error('Error fetching chat details:', error);
-      // Return a minimal chat session to avoid UI breaking
-    return {
-      id: sessionId,
-      title: `Chat session ${sessionId}`,
+      return {
+        id: sessionId,
+        title: `Chat session ${sessionId}`,
         updated_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
         messages: []
@@ -219,18 +318,29 @@ export const api = {
     }
   },
   
+  // Delete a chat session
   deleteChat: async (sessionId: string): Promise<boolean> => {
     try {
-      await fetchAPI(`/api/chats/${sessionId}`, {
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Chat-ID': sessionId
+      };
+      
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'DELETE',
+        headers
       });
       
-      // Clear current session if it was the one deleted
-    if (currentSession.id === sessionId) {
-      currentSession.id = null;
-    }
+      if (!response.ok) {
+        throw new Error(`Error deleting chat: ${response.status}`);
+      }
       
-    return true;
+      // Clear current session if it was the one deleted
+      if (currentSession.id === sessionId) {
+        currentSession.id = null;
+      }
+      
+      return true;
     } catch (error) {
       console.error('Error deleting chat:', error);
       return false;

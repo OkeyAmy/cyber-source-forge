@@ -86,10 +86,10 @@ function ChatSession({
         </div>
       )}
       
-      {/* Date separator - useful when showing multi-day conversations */}
+      {/* Date separator with improved styling */}
       {messages.length > 0 && (
-        <div className="sticky top-0 z-10 flex justify-center py-2 bg-gradient-to-b from-cyber-dark to-transparent">
-          <div className="text-xs text-white/50 bg-cyber-dark/80 px-3 py-1 rounded-full border border-white/10">
+        <div className="sticky top-0 z-10 flex justify-center py-2 bg-gradient-to-b from-black to-transparent">
+          <div className="text-xs text-white/60 bg-gray-900/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-sm">
             {messages[0].timestamp 
               ? new Date(messages[0].timestamp).toLocaleDateString(undefined, { 
                   weekday: 'long', 
@@ -103,34 +103,34 @@ function ChatSession({
 
       <ScrollArea 
         ref={scrollAreaRef} 
-        className="flex-1 bg-gradient-to-b from-cyber-dark to-cyber-dark/90 overflow-y-auto"
+        className="flex-1 bg-gradient-to-b from-gray-900 to-black overflow-y-auto"
       >
         <div 
-          className="flex flex-col min-h-full pb-4 px-2 md:px-6"
+          className="flex flex-col min-h-full pb-6 px-3 md:px-8 lg:px-16 max-w-5xl mx-auto w-full"
           role="log"
           aria-label="Chat conversation"
           aria-live="polite"
         >
-          {/* Start of conversation indicator */}
+          {/* Start of conversation indicator with improved styling */}
           {messages.length > 0 && (
-            <div className="flex justify-center my-4">
-              <div className="flex items-center gap-1.5 text-xs text-white/40">
-                <MessageSquare className="h-3 w-3" />
+            <div className="flex justify-center my-6">
+              <div className="flex items-center gap-2 text-xs text-white/50 bg-white/5 px-3 py-1.5 rounded-full">
+                <MessageSquare className="h-3.5 w-3.5" />
                 <span>Start of conversation</span>
               </div>
             </div>
           )}
           
-          {/* Chat Messages */}
+          {/* Chat Messages with improved spacing */}
           {messages.map((message, idx) => (
             <React.Fragment key={idx}>
-              {/* Add timestamp separator for message groups */}
+              {/* Add timestamp separator for message groups with improved styling */}
               {idx > 0 && 
                 message.timestamp && 
                 messages[idx-1].timestamp && 
                 new Date(message.timestamp).getDate() !== new Date(messages[idx-1].timestamp as string).getDate() && (
-                <div className="flex justify-center my-4">
-                  <div className="text-xs text-white/50 bg-cyber-dark/80 px-3 py-1 rounded-full border border-white/10">
+                <div className="flex justify-center my-5">
+                  <div className="text-xs text-white/60 bg-gray-900/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 shadow-sm">
                     {new Date(message.timestamp).toLocaleDateString(undefined, { 
                       weekday: 'long', 
                       month: 'short', 
@@ -141,14 +141,20 @@ function ChatSession({
               )}
             
               {/* Message bubble */}
-              <MessageBubble 
-                message={message} 
-                isLatest={idx === messages.length - 1} 
-              />
+              <div className={cn(
+                "mb-4",
+                message.role === 'assistant' && "mb-5",
+                idx > 0 && messages[idx-1].role === message.role && "mt-1"
+              )}>
+                <MessageBubble 
+                  message={message} 
+                  isLatest={idx === messages.length - 1} 
+                />
+              </div>
               
-              {/* Sources panel - only for assistant messages with sources */}
+              {/* Sources panel with improved positioning and styling */}
               {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
-                <div className="ml-14 mr-8 -mt-2 mb-4">
+                <div className="mb-8 max-w-4xl mx-auto w-full">
                   <SourcesPanel sources={message.sources} />
                 </div>
               )}
@@ -157,28 +163,30 @@ function ChatSession({
           
           {/* Loading indicator */}
           {isLoading && (
-            <LoadingMessage 
-              message={loadingMessage} 
-              phase={loadingPhase} 
-            />
+            <div className="mt-2 mb-6">
+              <LoadingMessage 
+                message={loadingMessage} 
+                phase={loadingPhase} 
+              />
+            </div>
           )}
           
-          <div ref={messagesEndRef} className="h-4" aria-hidden="true"></div>
+          <div ref={messagesEndRef} className="h-6" aria-hidden="true"></div>
         </div>
       </ScrollArea>
       
-      {/* Scroll to bottom button - only visible when scrolled up */}
+      {/* Scroll to bottom button with refined styling */}
       {showScrollButton && (
         <Button
-          className="absolute bottom-4 right-4 rounded-full h-10 w-10 p-0 bg-cyber-green/90 hover:bg-cyber-green shadow-[0_0_15px_rgba(0,255,170,0.3)] transition-all"
+          className="absolute bottom-5 right-5 rounded-full h-10 w-10 p-0 bg-white/10 backdrop-blur-md hover:bg-white/20 shadow-lg transition-all duration-200 border border-white/20"
           onClick={scrollToBottom}
           aria-label="Scroll to bottom"
         >
-          <ArrowDown className="h-5 w-5 text-black" />
+          <ArrowDown className="h-5 w-5 text-white" />
         </Button>
       )}
     </div>
   );
 }
 
-export default ChatSession; 
+export default ChatSession;
